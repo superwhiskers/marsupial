@@ -7,26 +7,28 @@
 //!
 //! ```
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! // Hash an input all at once.
+//! use marsupial::Hasher;
+//!
+//! // hash an input all at once
 //! let hash1 = marsupial::hash(b"foobarbaz");
 //!
-//! // Hash an input incrementally.
-//! let mut hasher = marsupial::Hasher::new();
+//! // hash an input incrementally
+//! let mut hasher = Hasher::new();
 //! hasher.update(b"foo");
 //! hasher.update(b"bar");
 //! hasher.update(b"baz");
 //! let hash2 = hasher.finalize();
 //! assert_eq!(hash1, hash2);
 //!
-//! // Extended output. OutputReader also implements Read.
-//! let mut hasher = marsupial::Hasher::new();
+//! // extended output. `OutputReader` also implements `Read`
+//! let mut hasher = Hasher::new();
 //! hasher.update(b"foobarbaz");
 //! let mut output_reader = hasher.finalize_xof();
 //! let mut output = [0; 1000];
 //! output_reader.squeeze(&mut output);
 //! assert_eq!(&output[..32], hash1.as_bytes());
 //!
-//! // Print a hash as hex.
+//! // emit the hash as hexadecimal
 //! println!("{}", hash1.to_hex());
 //! # Ok(())
 //! # }

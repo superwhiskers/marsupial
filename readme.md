@@ -26,7 +26,7 @@ then, just add a dependency upon the `marsupial` crate in `Cargo.toml`, and
 then you can use it like this:
 
 ```rust
-#use marsupial::Hasher;
+use marsupial::Hasher;
 
 // hash an input all at once
 let hash1 = marsupial::hash(b"foobarbaz");
