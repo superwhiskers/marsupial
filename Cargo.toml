@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Jack O'Connor <oconnor663@gmail.com>", "superwhiskers <whiskerdev@protonmail.com>"]
 description = "safe bindings to the xkcp/k12 implementation of the kangarootwelve hash function"
 repository = "https://github.com/superwhiskers/marsupial"
-license = "CC0"
+license-file = "license.txt"
 readme = "readme.md"
 keywords = ["kangarootwelve", "k12"]
 
