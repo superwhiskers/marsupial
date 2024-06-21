@@ -1,0 +1,30 @@
+[package]
+name = "marsupial"
+version = "0.0.1"
+edition = "2021"
+authors = ["Jack O'Connor <oconnor663@gmail.com>", "superwhiskers <whiskerdev@protonmail.com>"]
+description = "safe bindings to the xkcp/k12 implementation of the kangarootwelve hash function"
+repository = "https://github.com/superwhiskers/marsupial"
+license = "CC0"
+readme = "readme.md"
+keywords = ["kangarootwelve", "k12"]
+
+[dependencies]
+arrayvec = "0.7"
+constant_time_eq = "0.3"
+
+[dev-dependencies]
+digest = "0.10"
+hex = "0.4"
+k12 = "0.3"
+page_size = "0.6"
+rand = "0.8"
+criterion = "0.5"
+
+[build-dependencies]
+cc = "1"
+bindgen = "0.69"
+
+[[bench]]
+name = "everything"
+harness = false

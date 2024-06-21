@@ -1,0 +1,3 @@
+[submodule "src/XKCP-K12"]
+	path = src/XKCP-K12
+	url = https://github.com/XKCP/K12
