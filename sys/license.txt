@@ -1,3 +1,9 @@
+the vendored code from xkcp is covered by a mixture of licenses, described
+upstream:
+https://github.com/XKCP/XKCP#under-which-license-is-the-xkcp-distributed
+
+anything else is covered under cc0, described below:
+
 Creative Commons Legal Code
 
 CC0 1.0 Universal

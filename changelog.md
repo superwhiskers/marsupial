@@ -1,5 +1,18 @@
 # changelog
 
+## [0.0.2] - 2024-06-21
+
+### added
+
+- `.editorconfig` file
+
+### changed
+
+- moved ffi bindings to a separate crate, `marsupial-sys`
+- some adjustments to documentation comments
+- contained custom license combination to `marsupial-sys`, `marsupial` is
+  entirely cc0
+
 ## [0.0.1] - 2024-06-21
 
 initial version. changes are documented relative to code previously at

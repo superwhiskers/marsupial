@@ -7,8 +7,7 @@
 //!
 //! ```
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! use marsupial::Hasher;
-//!
+//! # use marsupial::Hasher;
 //! // hash an input all at once
 //! let hash1 = marsupial::hash(b"foobarbaz");
 //!
@@ -34,19 +33,11 @@
 //! # }
 //! ```
 
-#[allow(non_camel_case_types)]
-#[allow(non_snake_case)]
-#[allow(non_upper_case_globals)]
-#[allow(dead_code)]
-mod ffi {
-    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-}
+use arrayvec::ArrayString;
+use std::{fmt, mem::MaybeUninit};
 
 #[cfg(test)]
 mod test;
-
-use arrayvec::ArrayString;
-use std::{fmt, mem::MaybeUninit};
 
 /// The number of bytes hashed or output per block.
 pub const RATE: usize = 168; // (1600 - 256) / 8
@@ -67,15 +58,16 @@ pub fn hash(input: &[u8]) -> Hash {
 ///
 /// ```
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// // Hash an input incrementally.
-/// let mut hasher = marsupial::Hasher::new();
+/// # use marsupial::Hasher;
+/// // hash an input incrementally
+/// let mut hasher = Hasher::new();
 /// hasher.update(b"foo");
 /// hasher.update(b"bar");
 /// hasher.update(b"baz");
 /// assert_eq!(hasher.finalize(), marsupial::hash(b"foobarbaz"));
 ///
-/// // Extended output. OutputReader also implements Read and Seek.
-/// let mut hasher = marsupial::Hasher::new();
+/// // extended output. `OutputReader` also implements `Read` and `Seek`
+/// let mut hasher = Hasher::new();
 /// hasher.update(b"foobarbaz");
 /// let mut output = [0; 1000];
 /// let mut output_reader = hasher.finalize_xof();
@@ -85,14 +77,14 @@ pub fn hash(input: &[u8]) -> Hash {
 /// # }
 /// ```
 #[derive(Clone)]
-pub struct Hasher(ffi::KangarooTwelve_Instance);
+pub struct Hasher(marsupial_sys::KangarooTwelve_Instance);
 
 impl Hasher {
     /// Construct a new `Hasher` for the regular hash function.
     pub fn new() -> Self {
         let mut inner = MaybeUninit::uninit();
         let inner = unsafe {
-            let ret = ffi::KangarooTwelve_Initialize(inner.as_mut_ptr(), 128, 0);
+            let ret = marsupial_sys::KangarooTwelve_Initialize(inner.as_mut_ptr(), 128, 0);
             debug_assert_eq!(0, ret);
             inner.assume_init()
         };
@@ -111,7 +103,7 @@ impl Hasher {
     pub fn update(&mut self, input: &[u8]) {
         assert_eq!(self.0.phase, 1, "this instance has already been finalized");
         unsafe {
-            let ret = ffi::KangarooTwelve_Update(&mut self.0, input.as_ptr(), input.len());
+            let ret = marsupial_sys::KangarooTwelve_Update(&mut self.0, input.as_ptr(), input.len());
             debug_assert_eq!(0, ret);
         }
     }
@@ -136,14 +128,14 @@ impl Hasher {
         assert_eq!(self.0.phase, 1, "this instance has already been finalized");
         let mut bytes = [0; 32];
         unsafe {
-            let ret = ffi::KangarooTwelve_Final(
+            let ret = marsupial_sys::KangarooTwelve_Final(
                 &mut self.0,
                 std::ptr::null_mut(),
                 customization.as_ptr(),
                 customization.len(),
             );
             debug_assert_eq!(0, ret);
-            let ret = ffi::KangarooTwelve_Squeeze(&mut self.0, bytes.as_mut_ptr(), bytes.len());
+            let ret = marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, bytes.as_mut_ptr(), bytes.len());
             debug_assert_eq!(0, ret);
         }
         bytes.into()
@@ -172,7 +164,7 @@ impl Hasher {
     pub fn finalize_custom_xof(&mut self, customization: &[u8]) -> OutputReader {
         assert_eq!(self.0.phase, 1, "this instance has already been finalized");
         unsafe {
-            let ret = ffi::KangarooTwelve_Final(
+            let ret = marsupial_sys::KangarooTwelve_Final(
                 &mut self.0,
                 std::ptr::null_mut(),
                 customization.as_ptr(),
@@ -214,8 +206,7 @@ impl fmt::Debug for Hasher {
 /// ```
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// # use marsupial::Hash;
-/// use std::convert::TryInto;
-///
+/// # use std::convert::TryInto;
 /// let hash_hex = "d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24";
 /// let hash_bytes = hex::decode(hash_hex)?;
 /// let hash_array: [u8; 32] = hash_bytes[..].try_into()?;
@@ -302,7 +293,7 @@ impl fmt::Debug for Hash {
 /// [`Hasher::finalize_xof`](struct.Hasher.html#method.finalize_xof) and
 /// [`Hasher::finalize_custom_xof`](struct.Hasher.html#method.finalize_custom_xof).
 #[derive(Clone)]
-pub struct OutputReader(ffi::KangarooTwelve_Instance);
+pub struct OutputReader(marsupial_sys::KangarooTwelve_Instance);
 
 impl OutputReader {
     /// Fill a buffer with output bytes and advance the position of the
@@ -313,7 +304,7 @@ impl OutputReader {
     pub fn squeeze(&mut self, buf: &mut [u8]) {
         debug_assert_eq!(self.0.phase, 3, "this instance has not yet been finalized");
         unsafe {
-            let ret = ffi::KangarooTwelve_Squeeze(&mut self.0, buf.as_mut_ptr(), buf.len());
+            let ret = marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, buf.as_mut_ptr(), buf.len());
             debug_assert_eq!(0, ret);
         }
     }

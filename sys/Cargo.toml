@@ -1,0 +1,14 @@
+[package]
+name = "marsupial-sys"
+description = "ffi crate for the xkcp/k12 implementation of the kangarootwelve hash function"
+license-file = "license.txt"
+repository.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+keywords.workspace = true
+readme.workspace = true
+
+[build-dependencies]
+cc = "1"
+bindgen = "0.69"

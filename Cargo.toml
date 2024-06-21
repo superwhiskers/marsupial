@@ -1,17 +1,33 @@
+[workspace]
+members = ["sys"]
+resolver = "2"
+
+[workspace.package]
+repository = "https://github.com/superwhiskers/marsupial"
+version = "0.0.2"
+authors = ["Jack O'Connor <oconnor663@gmail.com>", "superwhiskers <whiskerdev@protonmail.com>"]
+edition = "2021"
+keywords = ["kangarootwelve", "k12"]
+readme = "readme.md"
+
 [package]
 name = "marsupial"
-version = "0.0.1"
-edition = "2021"
-authors = ["Jack O'Connor <oconnor663@gmail.com>", "superwhiskers <whiskerdev@protonmail.com>"]
 description = "safe bindings to the xkcp/k12 implementation of the kangarootwelve hash function"
-repository = "https://github.com/superwhiskers/marsupial"
-license-file = "license.txt"
-readme = "readme.md"
-keywords = ["kangarootwelve", "k12"]
+license = "CC0-1.0"
+repository.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+keywords.workspace = true
+readme.workspace = true
 
 [dependencies]
 arrayvec = "0.7"
 constant_time_eq = "0.3"
+
+[dependencies.marsupial-sys]
+version = "0.0.2"
+path = "./sys"
 
 [dev-dependencies]
 digest = "0.10"
@@ -20,10 +36,6 @@ k12 = "0.3"
 page_size = "0.6"
 rand = "0.8"
 criterion = "0.5"
-
-[build-dependencies]
-cc = "1"
-bindgen = "0.69"
 
 [[bench]]
 name = "everything"
