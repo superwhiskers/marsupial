@@ -9,10 +9,10 @@
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! # use marsupial::Hasher;
 //! // hash an input all at once
-//! let hash1 = marsupial::hash(b"foobarbaz");
+//! let hash1 = marsupial::hash::<128>(b"foobarbaz");
 //!
 //! // hash an input incrementally
-//! let mut hasher = Hasher::new();
+//! let mut hasher = Hasher::<128>::new();
 //! hasher.update(b"foo");
 //! hasher.update(b"bar");
 //! hasher.update(b"baz");
@@ -20,7 +20,7 @@
 //! assert_eq!(hash1, hash2);
 //!
 //! // extended output. `OutputReader` also implements `Read`
-//! let mut hasher = Hasher::new();
+//! let mut hasher = Hasher::<128>::new();
 //! hasher.update(b"foobarbaz");
 //! let mut output_reader = hasher.finalize_xof();
 //! let mut output = [0; 1000];
@@ -39,15 +39,29 @@ use std::{fmt, mem::MaybeUninit};
 #[cfg(test)]
 mod test;
 
-/// The number of bytes hashed or output per block.
-pub const RATE: usize = 168; // (1600 - 256) / 8
+pub mod bounds {
+    trait SealedIsOk {}
+
+    #[allow(private_bounds)]
+    pub trait IsOk: SealedIsOk {}
+
+    impl<T> IsOk for T where T: SealedIsOk {}
+
+    pub struct SecurityLevel<const SECURITY_LEVEL: usize>;
+
+    impl SealedIsOk for SecurityLevel<128> {}
+    impl SealedIsOk for SecurityLevel<256> {}
+}
 
 /// Hash a slice of bytes all at once. For multiple writes, the optional
 /// customization string, or extended output bytes, see [`Hasher`].
 ///
 /// [`Hasher`]: struct.Hasher.html
-pub fn hash(input: &[u8]) -> Hash {
-    let mut hasher = Hasher::new();
+pub fn hash<const SECURITY_LEVEL: usize>(input: &[u8]) -> Hash
+where
+    bounds::SecurityLevel<SECURITY_LEVEL>: bounds::IsOk,
+{
+    let mut hasher = Hasher::<SECURITY_LEVEL>::new();
     hasher.update(input);
     hasher.finalize()
 }
@@ -60,31 +74,41 @@ pub fn hash(input: &[u8]) -> Hash {
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// # use marsupial::Hasher;
 /// // hash an input incrementally
-/// let mut hasher = Hasher::new();
+/// let mut hasher = Hasher::<128>::new();
 /// hasher.update(b"foo");
 /// hasher.update(b"bar");
 /// hasher.update(b"baz");
-/// assert_eq!(hasher.finalize(), marsupial::hash(b"foobarbaz"));
+/// assert_eq!(hasher.finalize(), marsupial::hash::<128>(b"foobarbaz"));
 ///
 /// // extended output. `OutputReader` also implements `Read` and `Seek`
-/// let mut hasher = Hasher::new();
+/// let mut hasher = Hasher::<128>::new();
 /// hasher.update(b"foobarbaz");
 /// let mut output = [0; 1000];
 /// let mut output_reader = hasher.finalize_xof();
 /// output_reader.squeeze(&mut output);
-/// assert_eq!(&output[..32], marsupial::hash(b"foobarbaz").as_bytes());
+/// assert_eq!(&output[..32], marsupial::hash::<128>(b"foobarbaz").as_bytes());
 /// # Ok(())
 /// # }
 /// ```
 #[derive(Clone)]
-pub struct Hasher(marsupial_sys::KangarooTwelve_Instance);
+pub struct Hasher<const SECURITY_LEVEL: usize>(marsupial_sys::KangarooTwelve_Instance);
 
-impl Hasher {
+impl<const SECURITY_LEVEL: usize> Hasher<SECURITY_LEVEL>
+where
+    bounds::SecurityLevel<SECURITY_LEVEL>: bounds::IsOk,
+{
+    /// The number of bytes hashed or output per block.
+    pub const RATE: usize = (1600 - (2 * SECURITY_LEVEL)) / 8;
+
     /// Construct a new `Hasher` for the regular hash function.
     pub fn new() -> Self {
         let mut inner = MaybeUninit::uninit();
         let inner = unsafe {
-            let ret = marsupial_sys::KangarooTwelve_Initialize(inner.as_mut_ptr(), 128, 0);
+            let ret = marsupial_sys::KangarooTwelve_Initialize(
+                inner.as_mut_ptr(),
+                SECURITY_LEVEL as i32,
+                0,
+            );
             debug_assert_eq!(0, ret);
             inner.assume_init()
         };
@@ -103,7 +127,8 @@ impl Hasher {
     pub fn update(&mut self, input: &[u8]) {
         assert_eq!(self.0.phase, 1, "this instance has already been finalized");
         unsafe {
-            let ret = marsupial_sys::KangarooTwelve_Update(&mut self.0, input.as_ptr(), input.len());
+            let ret =
+                marsupial_sys::KangarooTwelve_Update(&mut self.0, input.as_ptr(), input.len());
             debug_assert_eq!(0, ret);
         }
     }
@@ -135,7 +160,8 @@ impl Hasher {
                 customization.len(),
             );
             debug_assert_eq!(0, ret);
-            let ret = marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, bytes.as_mut_ptr(), bytes.len());
+            let ret =
+                marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, bytes.as_mut_ptr(), bytes.len());
             debug_assert_eq!(0, ret);
         }
         bytes.into()
@@ -176,15 +202,18 @@ impl Hasher {
     }
 }
 
-impl Default for Hasher {
+impl<const SECURITY_LEVEL: usize> Default for Hasher<SECURITY_LEVEL>
+where
+    bounds::SecurityLevel<SECURITY_LEVEL>: bounds::IsOk,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl fmt::Debug for Hasher {
+impl<const SECURITY_LEVEL: usize> fmt::Debug for Hasher<SECURITY_LEVEL> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Hasher").finish()
+        f.debug_struct("Hasher").finish_non_exhaustive()
     }
 }
 
@@ -285,7 +314,7 @@ impl Eq for Hash {}
 
 impl fmt::Debug for Hash {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Hash({})", self.to_hex())
+        f.debug_tuple("Hash").field(&self.to_hex()).finish()
     }
 }
 
@@ -304,7 +333,8 @@ impl OutputReader {
     pub fn squeeze(&mut self, buf: &mut [u8]) {
         debug_assert_eq!(self.0.phase, 3, "this instance has not yet been finalized");
         unsafe {
-            let ret = marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, buf.as_mut_ptr(), buf.len());
+            let ret =
+                marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, buf.as_mut_ptr(), buf.len());
             debug_assert_eq!(0, ret);
         }
     }
@@ -313,7 +343,7 @@ impl OutputReader {
 // Don't derive(Debug), because the state may be secret.
 impl fmt::Debug for OutputReader {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "OutputReader {{ ... }}")
+        f.debug_struct("OutputReader").finish_non_exhaustive()
     }
 }
 

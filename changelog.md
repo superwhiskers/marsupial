@@ -5,6 +5,18 @@
 ### changed
 
 - improved benchmarking program
+- slightly more idiomatic `Debug` implementation techniques
+- addressed a clippy lint in `sys/build.rs`
+- parameterized `Hasher` to support variable `SECURITY_LEVEL`s, and
+  made `RATE` an associated constant of `Hasher` to support this correctly
+
+### added
+
+- comparison against the [tiny-keccak](https://crates.io/crates/tiny-keccak)
+  crate in the benchmark suite, in addition to comparing responses agains it
+  in the test suite
+- support for KT256 (described
+  [here](https://datatracker.ietf.org/doc/draft-irtf-cfrg-kangarootwelve/))
 
 ## [0.0.2] - 2024-06-21
 

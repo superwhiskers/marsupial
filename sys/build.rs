@@ -22,7 +22,7 @@ fn main() {
     let target_is_little_endian = match env::var("CARGO_CFG_TARGET_ENDIAN").unwrap().as_str() {
         "little" => true,
         "big" => false,
-        e @ _ => panic!("unexpected endianness: {}", e),
+        e => panic!("unexpected endianness: {}", e),
     };
 
     let target_implementation = if target_arch == "x86_64" {

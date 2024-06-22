@@ -37,6 +37,10 @@ page_size = "0.6"
 rand = "0.8"
 criterion = "0.5"
 
+[dev-dependencies.tiny-keccak]
+version = "2"
+features = ["k12"]
+
 [[bench]]
 name = "everything"
 harness = false

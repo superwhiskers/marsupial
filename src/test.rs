@@ -1,9 +1,11 @@
 use crate::{hash, Hasher};
+use digest::{ExtendableOutput, Update, XofReader};
+use tiny_keccak::{IntoXof, Xof};
 
 #[test]
 #[should_panic]
 fn test_update_after_finalize_panics() {
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::<128>::new();
     hasher.finalize();
     hasher.update(&[]);
 }
@@ -11,7 +13,7 @@ fn test_update_after_finalize_panics() {
 #[test]
 #[should_panic]
 fn test_finalize_twice_panics() {
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::<128>::new();
     hasher.finalize();
     hasher.finalize();
 }
@@ -24,7 +26,7 @@ fn fill_pattern(buf: &mut [u8]) {
 }
 
 fn k12_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> String {
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::<128>::new();
     hasher.update(input);
     let mut output = vec![0; num_output_bytes];
     hasher
@@ -32,7 +34,7 @@ fn k12_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Strin
         .squeeze(&mut output);
 
     // Also check that doing the same hash in two steps gives the same answer.
-    let mut hasher2 = Hasher::new();
+    let mut hasher2 = Hasher::<128>::new();
     hasher2.update(&input[..input.len() / 2]);
     hasher2.update(&input[input.len() / 2..]);
     let mut output2 = vec![0; num_output_bytes];
@@ -43,19 +45,26 @@ fn k12_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Strin
 
     // Check that the all-at-once function gives the same answer too.
     if customization.is_empty() {
-        let hash3 = hash(input);
+        let hash3 = hash::<128>(input);
         let compare_len = std::cmp::min(hash3.as_bytes().len(), num_output_bytes);
         assert_eq!(&hash3.as_bytes()[..compare_len], &output[..compare_len]);
     }
 
-    // Finally, check that the `k12` crate gives the same answer too.
-    use digest::{ExtendableOutput, Update, XofReader};
+    // Check that the `k12` crate gives the same answer too.
     let mut k12_state = k12::KangarooTwelve::from_core(k12::KangarooTwelveCore::new(customization));
     k12_state.update(input);
     let mut k12_reader = k12_state.finalize_xof();
     let mut k12_output = vec![0; num_output_bytes];
     k12_reader.read(&mut k12_output);
     assert_eq!(output, k12_output);
+
+    // finally, check that the tiny-keccak crate gives the same answer
+    let mut tk_state = tiny_keccak::KangarooTwelve::new(customization);
+    <tiny_keccak::KangarooTwelve<&[u8]> as tiny_keccak::Hasher>::update(&mut tk_state, input);
+    let mut tk_xof = tk_state.into_xof();
+    let mut tk_output = vec![0; num_output_bytes];
+    tk_xof.squeeze(&mut tk_output);
+    assert_eq!(output, tk_output);
 
     hex::encode(output)
 }

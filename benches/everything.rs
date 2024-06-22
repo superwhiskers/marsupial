@@ -1,6 +1,4 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use digest::{ExtendableOutput, Update, XofReader};
-use k12::{KangarooTwelve, KangarooTwelveCore};
 use rand::prelude::*;
 
 const KIB: usize = 1024;
@@ -50,18 +48,36 @@ fn bench_marsupial_and_k12_at_128(c: &mut Criterion) {
 
         let mut marsupial_input = black_box(RandomInput::new(bytes));
         g.bench_function(BenchmarkId::new("marsupial", n), |b| {
-            b.iter(|| marsupial::hash(marsupial_input.get()))
+            b.iter(|| marsupial::hash::<128>(marsupial_input.get()))
         });
 
         let mut k12_input = black_box(RandomInput::new(bytes));
         g.bench_function(BenchmarkId::new("k12", n), |b| {
             b.iter(|| {
+                use digest::{ExtendableOutput, Update, XofReader};
+                use k12::{KangarooTwelve, KangarooTwelveCore};
+
                 let mut state = KangarooTwelve::from_core(KangarooTwelveCore::default());
                 state.update(k12_input.get());
 
                 let mut reader = state.finalize_xof();
                 let mut output = [0; 32];
                 reader.read(&mut output);
+                output
+            })
+        });
+
+        let mut tk_input = black_box(RandomInput::new(bytes));
+        g.bench_function(BenchmarkId::new("tiny-keccak", n), |b| {
+            b.iter(|| {
+                use tiny_keccak::{Hasher, IntoXof, KangarooTwelve, Xof};
+
+                let mut state = KangarooTwelve::new(b"");
+                state.update(tk_input.get());
+
+                let mut xof = state.into_xof();
+                let mut output = [0; 32];
+                xof.squeeze(&mut output);
                 output
             })
         });
