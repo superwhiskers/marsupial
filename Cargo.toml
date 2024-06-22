@@ -44,3 +44,11 @@ features = ["k12"]
 [[bench]]
 name = "everything"
 harness = false
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+debug = false
+strip = "symbols"
+panic = "abort"
+lto = "fat"

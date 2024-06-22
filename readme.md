@@ -51,6 +51,14 @@ assert_eq!(&output[..32], hash1.as_bytes());
 println!("{}", hash1.to_hex());
 ```
 
+## is it fast?
+
+benchmarks done on an intel i5-1135G7 using rust 1.79.0 on debian linux trixie/sid
+
+![benchmark of marsupial's safe KT128 bindings against tiny-keccak and k12](./assets/KT128.svg)
+
+![benchmark of marsupial's safe KT256 bindings](./assets/KT256.svg)
+
 ## license
 
 as is with `kangarootwelve_xkcp.rs`, all of the rust wrapping code is dedicated

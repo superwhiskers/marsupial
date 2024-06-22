@@ -39,8 +39,8 @@ impl RandomInput {
     }
 }
 
-fn bench_marsupial_and_k12_at_128(c: &mut Criterion) {
-    let mut g = c.benchmark_group("128 bits");
+fn bench_kt128(c: &mut Criterion) {
+    let mut g = c.benchmark_group("KT128");
 
     for n in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024].iter() {
         let bytes = n * KIB;
@@ -84,5 +84,19 @@ fn bench_marsupial_and_k12_at_128(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_marsupial_and_k12_at_128);
+fn bench_kt256(c: &mut Criterion) {
+    let mut g = c.benchmark_group("KT256");
+
+    for n in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024].iter() {
+        let bytes = n * KIB;
+        g.throughput(Throughput::Bytes(bytes as u64));
+
+        let mut marsupial_input = black_box(RandomInput::new(bytes));
+        g.bench_function(BenchmarkId::new("marsupial", n), |b| {
+            b.iter(|| marsupial::hash::<256>(marsupial_input.get()))
+        });
+    }
+}
+
+criterion_group!(benches, bench_kt128, bench_kt256);
 criterion_main!(benches);
