@@ -9,6 +9,7 @@
 - addressed a clippy lint in `sys/build.rs`
 - parameterized `Hasher` to support variable `SECURITY_LEVEL`s, and
   made `RATE` an associated constant of `Hasher` to support this correctly
+- made all of the documentation comments uniform
 
 ### added
 
@@ -19,6 +20,8 @@
   [here](https://datatracker.ietf.org/doc/draft-irtf-cfrg-kangarootwelve/))
 - full set of test vectors for KT256 from the above document
 - benchmarks of marsupial's KT256 bindings
+- `strip.sh` script, which is useful for stripping whitespace from the test
+  vectors provided in the IETF internet draft above
 
 ## [0.0.2] - 2024-06-21
 

@@ -1,7 +1,7 @@
 //! A Rust wrapper around the [eXtended Keccak Code Package
 //! implementation](https://github.com/XKCP/K12) of the
 //! [KangarooTwelve](https://keccak.team/kangarootwelve.html) cryptographic
-//! hash function.
+//! hash function
 //!
 //! # Examples
 //!
@@ -39,14 +39,18 @@ use std::{fmt, mem::MaybeUninit};
 #[cfg(test)]
 mod test;
 
+/// Helpers used to enforce the correctness of the `SECURITY_LEVEL` parameter
+/// of the [`Hasher`]
 pub mod bounds {
     trait SealedIsOk {}
 
+    /// Trait implemented on correct [`SecurityLevel`]s
     #[allow(private_bounds)]
     pub trait IsOk: SealedIsOk {}
 
     impl<T> IsOk for T where T: SealedIsOk {}
 
+    /// Container for the `SECURITY_LEVEL` parameter
     pub struct SecurityLevel<const SECURITY_LEVEL: usize>;
 
     impl SealedIsOk for SecurityLevel<128> {}
@@ -54,7 +58,15 @@ pub mod bounds {
 }
 
 /// Hash a slice of bytes all at once. For multiple writes, the optional
-/// customization string, or extended output bytes, see [`Hasher`].
+/// customization string, or extended output bytes, see [`Hasher`]
+///
+/// The `SECURITY_LEVEL` parameter indicates the security strength level in
+/// terms of bits. Valid values for it are:
+///
+/// - `128usize` - the `KT128` hash function
+/// - `256usize` - the `KT256` hash function
+///
+/// Any other value will fail to compile
 ///
 /// [`Hasher`]: struct.Hasher.html
 pub fn hash<const SECURITY_LEVEL: usize>(input: &[u8]) -> Hash
@@ -66,7 +78,15 @@ where
     hasher.finalize()
 }
 
-/// An incremental hash state that can accept any number of writes.
+/// An incremental hash state that can accept any number of writes
+///
+/// The `SECURITY_LEVEL` parameter indicates the security strength level in
+/// terms of bits. Valid values for it are:
+///
+/// - `128usize` - the `KT128` hash function
+/// - `256usize` - the `KT256` hash function
+///
+/// Any other value will fail to compile
 ///
 /// # Examples
 ///
@@ -97,10 +117,10 @@ impl<const SECURITY_LEVEL: usize> Hasher<SECURITY_LEVEL>
 where
     bounds::SecurityLevel<SECURITY_LEVEL>: bounds::IsOk,
 {
-    /// The number of bytes hashed or output per block.
+    /// The number of bytes hashed or output per block
     pub const RATE: usize = (1600 - (2 * SECURITY_LEVEL)) / 8;
 
-    /// Construct a new `Hasher` for the regular hash function.
+    /// Construct a new [`Hasher`] for the regular hash function
     pub fn new() -> Self {
         let mut inner = MaybeUninit::uninit();
         let inner = unsafe {
@@ -112,7 +132,7 @@ where
             debug_assert_eq!(0, ret);
             inner.assume_init()
         };
-        // These asserts help check that our struct definitions agree with C.
+        // These asserts help check that our struct definitions agree with C
         debug_assert_eq!(0, inner.fixedOutputLength);
         debug_assert_eq!(0, inner.blockNumber);
         debug_assert_eq!(0, inner.queueAbsorbedLen);
@@ -123,7 +143,7 @@ where
     }
 
     /// Add input bytes to the hash state. You can call this any number of
-    /// times, until the `Hasher` is finalized.
+    /// times, until the [`Hasher`] is finalized
     pub fn update(&mut self, input: &[u8]) {
         assert_eq!(self.0.phase, 1, "this instance has already been finalized");
         unsafe {
@@ -133,22 +153,21 @@ where
         }
     }
 
-    /// Finalize the hash state and return the [`Hash`](struct.Hash.html) of
-    /// the input. This method is equivalent to
-    /// [`finalize_custom`](#method.finalize_custom) with an empty
-    /// customization string.
+    /// Finalize the hash state and return the [`struct@Hash`] of the input. This
+    /// method is equivalent to [`finalize_custom`](#method.finalize_custom)
+    /// with an empty customization string
     ///
-    /// You can only finalize a `Hasher` once. Additional calls to any of the
-    /// finalize methods will panic.
+    /// You can only finalize a [`Hasher`] once. Additional calls to any of
+    /// the finalize methods will panic
     pub fn finalize(&mut self) -> Hash {
         self.finalize_custom(&[])
     }
 
-    /// Finalize the hash state using the given customization string and return
-    /// the [`Hash`](struct.Hash.html) of the input.
+    /// Finalize the hash state using the given customization string and
+    /// return the [`struct@Hash`] of the input
     ///
-    /// You can only finalize a `Hasher` once. Additional calls to any of the
-    /// finalize methods will panic.
+    /// You can only finalize a [`Hasher`] once. Additional calls to any of
+    /// the finalize methods will panic
     pub fn finalize_custom(&mut self, customization: &[u8]) -> Hash {
         assert_eq!(self.0.phase, 1, "this instance has already been finalized");
         let mut bytes = [0; 32];
@@ -170,10 +189,10 @@ where
     /// Finalize the hash state and return an [`OutputReader`], which can
     /// supply any number of output bytes. This method is equivalent to
     /// [`finalize_custom_xof`](#method.finalize_custom_xof) with an empty
-    /// customization string.
+    /// customization string
     ///
-    /// You can only finalize a `Hasher` once. Additional calls to any of the
-    /// finalize methods will panic.
+    /// You can only finalize a [`Hasher`] once. Additional calls to any of
+    /// the finalize methods will panic
     ///
     /// [`OutputReader`]: struct.OutputReader.html
     pub fn finalize_xof(&mut self) -> OutputReader {
@@ -181,10 +200,10 @@ where
     }
 
     /// Finalize the hash state and return an [`OutputReader`], which can
-    /// supply any number of output bytes.
+    /// supply any number of output bytes
     ///
-    /// You can only finalize a `Hasher` once. Additional calls to any of the
-    /// finalize methods will panic.
+    /// You can only finalize a [`Hasher`] once. Additional calls to any of
+    /// the finalize methods will panic
     ///
     /// [`OutputReader`]: struct.OutputReader.html
     pub fn finalize_custom_xof(&mut self, customization: &[u8]) -> OutputReader {
@@ -218,7 +237,7 @@ impl<const SECURITY_LEVEL: usize> fmt::Debug for Hasher<SECURITY_LEVEL> {
 }
 
 /// An output of the default size, 32 bytes, which provides constant-time
-/// equality checking.
+/// equality checking
 ///
 /// `Hash` implements [`From`] and [`Into`] for `[u8; 32]`, and it provides an
 /// explicit [`as_bytes`] method returning `&[u8; 32]`. However, byte arrays
@@ -226,11 +245,11 @@ impl<const SECURITY_LEVEL: usize> fmt::Debug for Hasher<SECURITY_LEVEL> {
 /// security requirement in software that handles private data. `Hash` doesn't
 /// implement [`Deref`] or [`AsRef`], to avoid situations where a type
 /// conversion happens implicitly and the constant-time property is
-/// accidentally lost.
+/// accidentally lost
 ///
 /// `Hash` provides the [`to_hex`] method for converting to hexadecimal. It
-/// doesn't directly support converting from hexadecimal, but here's an example
-/// of doing that with the [`hex`] crate:
+/// doesn't directly support converting from hexadecimal, but here's an
+/// example of doing that with the [`hex`] crate:
 ///
 /// ```
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -255,16 +274,16 @@ impl<const SECURITY_LEVEL: usize> fmt::Debug for Hasher<SECURITY_LEVEL> {
 pub struct Hash([u8; 32]);
 
 impl Hash {
-    /// The bytes of the `Hash`. Note that byte arrays don't provide
+    /// The bytes of the [`struct@Hash`]. Note that byte arrays don't provide
     /// constant-time equality checking, so if  you need to compare hashes,
-    /// prefer the `Hash` type.
+    /// prefer the [`struct@Hash`] type
     #[inline]
     pub fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
 
-    /// The hexadecimal encoding of the `Hash`. The returned [`ArrayString`] is
-    /// a fixed size and doesn't allocate memory on the heap. Note that
+    /// The hexadecimal encoding of the [`struct@Hash`]. The returned [`ArrayString`]
+    /// is of a fixed size and doesn't allocate memory on the heap. Note that
     /// [`ArrayString`] doesn't provide constant-time equality checking, so if
     /// you need to compare hashes, prefer the `Hash` type.
     ///
@@ -294,7 +313,7 @@ impl From<Hash> for [u8; 32] {
     }
 }
 
-/// This implementation is constant-time.
+/// This implementation is constant-time
 impl PartialEq for Hash {
     #[inline]
     fn eq(&self, other: &Hash) -> bool {
@@ -302,7 +321,7 @@ impl PartialEq for Hash {
     }
 }
 
-/// This implementation is constant-time.
+/// This implementation is constant-time
 impl PartialEq<[u8; 32]> for Hash {
     #[inline]
     fn eq(&self, other: &[u8; 32]) -> bool {
@@ -320,14 +339,16 @@ impl fmt::Debug for Hash {
 
 /// An incremental reader for extended output, returned by
 /// [`Hasher::finalize_xof`](struct.Hasher.html#method.finalize_xof) and
-/// [`Hasher::finalize_custom_xof`](struct.Hasher.html#method.finalize_custom_xof).
+/// [`Hasher::finalize_custom_xof`](struct.Hasher.html#method.finalize_custom_xof)
 #[derive(Clone)]
 pub struct OutputReader(marsupial_sys::KangarooTwelve_Instance);
 
 impl OutputReader {
     /// Fill a buffer with output bytes and advance the position of the
-    /// `OutputReader`. This is equivalent to [`Read::read`], except that it
-    /// doesn't return a `Result`. Both methods always fill the entire buffer.
+    /// [`OutputReader`]
+    ///
+    /// This is equivalent to [`Read::read`], except that it
+    /// doesn't return a `Result`. Both methods always fill the entire buffer
     ///
     /// [`Read::read`]: #method.read
     pub fn squeeze(&mut self, buf: &mut [u8]) {
@@ -340,7 +361,7 @@ impl OutputReader {
     }
 }
 
-// Don't derive(Debug), because the state may be secret.
+// Don't derive(Debug), because the state may be secret
 impl fmt::Debug for OutputReader {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("OutputReader").finish_non_exhaustive()

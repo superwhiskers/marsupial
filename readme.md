@@ -1,18 +1,7 @@
 # marsupial
 
-a rust wrapper for [xkcp/k12](https://github.com/XKCP/K12), derived entirely
-from
+a rust wrapper for [xkcp/k12](https://github.com/XKCP/K12), derived from
 [oconnor663/kangarootwelve_xkcp.rs](https://github.com/oconnor663/kangarootwelve_xkcp.rs)
-
-the only differences are:
-
-- updated crate dependencies
-- updated xkcp/k12
-- the removal of `k12sum`
-- changed branding
-- benchmarks modified to use the [criterion](https://lib.rs/crates/criterion)
-  crate to allow benchmarking on stable rust
-- doesn't need bindgen installed system-wide
 
 ## usage
 
