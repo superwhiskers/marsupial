@@ -1,5 +1,12 @@
 # changelog
 
+## [0.0.4] - 2024-06-22
+
+## changed
+
+- got `marsupial` and `marsupial-sys` on the same version, with `marsupial`
+  depending upon the correct version of `marsupial-sys`
+
 ## [0.0.3] - 2024-06-22
 
 ### changed
