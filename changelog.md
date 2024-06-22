@@ -1,5 +1,11 @@
 # changelog
 
+## [unreleased]
+
+### changed
+
+- improved benchmarking program
+
 ## [0.0.2] - 2024-06-21
 
 ### added

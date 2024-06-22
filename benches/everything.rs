@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use digest::{ExtendableOutput, Update, XofReader};
 use k12::{KangarooTwelve, KangarooTwelveCore};
 use rand::prelude::*;
@@ -41,44 +41,32 @@ impl RandomInput {
     }
 }
 
-fn bench_atonce(c: &mut Criterion, n: usize) {
-    let mut g = c.benchmark_group(format!("{} kib", n));
-    let bytes = n * KIB;
+fn bench_marsupial_and_k12_at_128(c: &mut Criterion) {
+    let mut g = c.benchmark_group("128 bits");
 
-    g.throughput(Throughput::Bytes(bytes as u64));
+    for n in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024].iter() {
+        let bytes = n * KIB;
+        g.throughput(Throughput::Bytes(bytes as u64));
 
-    let mut marsupial_input = black_box(RandomInput::new(bytes));
-    g.bench_function("marsupial", |b| {
-        b.iter(|| marsupial::hash(marsupial_input.get()))
-    });
+        let mut marsupial_input = black_box(RandomInput::new(bytes));
+        g.bench_function(BenchmarkId::new("marsupial", n), |b| {
+            b.iter(|| marsupial::hash(marsupial_input.get()))
+        });
 
-    let mut k12_input = black_box(RandomInput::new(bytes));
-    g.bench_function("k12", |b| {
-        b.iter(|| {
-            let mut state = KangarooTwelve::from_core(KangarooTwelveCore::default());
-            state.update(k12_input.get());
+        let mut k12_input = black_box(RandomInput::new(bytes));
+        g.bench_function(BenchmarkId::new("k12", n), |b| {
+            b.iter(|| {
+                let mut state = KangarooTwelve::from_core(KangarooTwelveCore::default());
+                state.update(k12_input.get());
 
-            let mut reader = state.finalize_xof();
-            let mut output = [0; 32];
-            reader.read(&mut output);
-            output
-        })
-    });
+                let mut reader = state.finalize_xof();
+                let mut output = [0; 32];
+                reader.read(&mut output);
+                output
+            })
+        });
+    }
 }
 
-fn benchmark(c: &mut Criterion) {
-    bench_atonce(c, 1);
-    bench_atonce(c, 2);
-    bench_atonce(c, 4);
-    bench_atonce(c, 8);
-    bench_atonce(c, 16);
-    bench_atonce(c, 32);
-    bench_atonce(c, 64);
-    bench_atonce(c, 128);
-    bench_atonce(c, 256);
-    bench_atonce(c, 512);
-    bench_atonce(c, 1024);
-}
-
-criterion_group!(benches, benchmark);
+criterion_group!(benches, bench_marsupial_and_k12_at_128);
 criterion_main!(benches);
