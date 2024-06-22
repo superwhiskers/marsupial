@@ -17,6 +17,7 @@
   in the test suite
 - support for KT256 (described
   [here](https://datatracker.ietf.org/doc/draft-irtf-cfrg-kangarootwelve/))
+- full set of test vectors for KT256 from the above document
 
 ## [0.0.2] - 2024-06-21
 
