@@ -15,13 +15,13 @@ then, just add a dependency upon the `marsupial` crate in `Cargo.toml`, and
 then you can use it like this:
 
 ```rust
-use marsupial::Hasher;
+use marsupial::{KT128, Hasher};
 
 // hash an input all at once
-let hash1 = marsupial::hash::<128>(b"foobarbaz");
+let hash1 = marsupial::hash::<KT128>(b"foobarbaz");
 
 // hash an input incrementally
-let mut hasher = Hasher::<128>::new();
+let mut hasher = Hasher::<KT128>::new();
 hasher.update(b"foo");
 hasher.update(b"bar");
 hasher.update(b"baz");
@@ -29,15 +29,15 @@ let hash2 = hasher.finalize();
 assert_eq!(hash1, hash2);
 
 // extended output. `OutputReader` also implements `Read`
-let mut hasher = Hasher::<128>::new();
+let mut hasher = Hasher::<KT128>::new();
 hasher.update(b"foobarbaz");
 let mut output_reader = hasher.finalize_xof();
 let mut output = [0; 1000];
 output_reader.squeeze(&mut output);
 assert_eq!(&output[..32], hash1.as_bytes());
 
-// emit the hash as hexadecimal
-println!("{}", hash1.to_hex());
+// emit the hash as hexadecimal (does not work for now)
+//println!("{}", hash1.to_hex());
 ```
 
 ## is it fast?

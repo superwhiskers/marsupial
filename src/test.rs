@@ -1,11 +1,11 @@
-use crate::{hash, Hasher};
+use crate::{hash, Hasher, KT128, KT256};
 use digest::{ExtendableOutput, Update, XofReader};
 use tiny_keccak::{IntoXof, Xof};
 
 #[test]
 #[should_panic]
 fn test_update_after_finalize_panics() {
-    let mut hasher = Hasher::<128>::new();
+    let mut hasher = Hasher::<KT128>::new();
     hasher.finalize();
     hasher.update(&[]);
 }
@@ -13,7 +13,7 @@ fn test_update_after_finalize_panics() {
 #[test]
 #[should_panic]
 fn test_finalize_twice_panics() {
-    let mut hasher = Hasher::<128>::new();
+    let mut hasher = Hasher::<KT128>::new();
     hasher.finalize();
     hasher.finalize();
 }
@@ -26,7 +26,7 @@ fn fill_pattern(buf: &mut [u8]) {
 }
 
 fn kt256_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> String {
-    let mut hasher = Hasher::<256>::new();
+    let mut hasher = Hasher::<KT256>::new();
     hasher.update(input);
     let mut output = vec![0; num_output_bytes];
     hasher
@@ -34,7 +34,7 @@ fn kt256_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Str
         .squeeze(&mut output);
 
     // check that doing the same hash in two steps gives the same answer
-    let mut hasher2 = Hasher::<256>::new();
+    let mut hasher2 = Hasher::<KT256>::new();
     hasher2.update(&input[..input.len() / 2]);
     hasher2.update(&input[input.len() / 2..]);
     let mut output2 = vec![0; num_output_bytes];
@@ -45,7 +45,7 @@ fn kt256_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Str
 
     // check that using the all-at-once function gives the same answer if possible
     if customization.is_empty() {
-        let hash3 = hash::<256>(input);
+        let hash3 = hash::<KT256>(input);
         let compare_len = std::cmp::min(hash3.as_bytes().len(), num_output_bytes);
         assert_eq!(&hash3.as_bytes()[..compare_len], &output[..compare_len]);
     }
@@ -54,7 +54,7 @@ fn kt256_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Str
 }
 
 fn kt128_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> String {
-    let mut hasher = Hasher::<128>::new();
+    let mut hasher = Hasher::<KT128>::new();
     hasher.update(input);
     let mut output = vec![0; num_output_bytes];
     hasher
@@ -62,7 +62,7 @@ fn kt128_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Str
         .squeeze(&mut output);
 
     // Also check that doing the same hash in two steps gives the same answer.
-    let mut hasher2 = Hasher::<128>::new();
+    let mut hasher2 = Hasher::<KT128>::new();
     hasher2.update(&input[..input.len() / 2]);
     hasher2.update(&input[input.len() / 2..]);
     let mut output2 = vec![0; num_output_bytes];
@@ -73,7 +73,7 @@ fn kt128_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Str
 
     // Check that the all-at-once function gives the same answer too.
     if customization.is_empty() {
-        let hash3 = hash::<128>(input);
+        let hash3 = hash::<KT128>(input);
         let compare_len = std::cmp::min(hash3.as_bytes().len(), num_output_bytes);
         assert_eq!(&hash3.as_bytes()[..compare_len], &output[..compare_len]);
     }

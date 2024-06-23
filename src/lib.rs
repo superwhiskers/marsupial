@@ -7,12 +7,12 @@
 //!
 //! ```
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! # use marsupial::Hasher;
+//! # use marsupial::{KT128, Hasher};
 //! // hash an input all at once
-//! let hash1 = marsupial::hash::<128>(b"foobarbaz");
+//! let hash1 = marsupial::hash::<KT128>(b"foobarbaz");
 //!
 //! // hash an input incrementally
-//! let mut hasher = Hasher::<128>::new();
+//! let mut hasher = Hasher::<KT128>::new();
 //! hasher.update(b"foo");
 //! hasher.update(b"bar");
 //! hasher.update(b"baz");
@@ -20,71 +20,100 @@
 //! assert_eq!(hash1, hash2);
 //!
 //! // extended output. `OutputReader` also implements `Read`
-//! let mut hasher = Hasher::<128>::new();
+//! let mut hasher = Hasher::<KT128>::new();
 //! hasher.update(b"foobarbaz");
 //! let mut output_reader = hasher.finalize_xof();
 //! let mut output = [0; 1000];
 //! output_reader.squeeze(&mut output);
 //! assert_eq!(&output[..32], hash1.as_bytes());
 //!
-//! // emit the hash as hexadecimal
-//! println!("{}", hash1.to_hex());
+//! // emit the hash as hexadecimal (does not work for now)
+//! //println!("{}", hash1.to_hex());
 //! # Ok(())
 //! # }
 //! ```
 
-use arrayvec::ArrayString;
-use std::{fmt, mem::MaybeUninit};
+use std::{fmt, marker::PhantomData, mem::MaybeUninit};
 
 #[cfg(test)]
 mod test;
 
-/// Helpers used to enforce the correctness of the `SECURITY_LEVEL` parameter
-/// of the [`Hasher`]
-pub mod bounds {
-    trait SealedIsOk {}
+/// An internal trait used to prevent foreign implementations of the
+/// [`SecurityLevel`] trait
+trait Sealed {}
 
-    /// Trait implemented on correct [`SecurityLevel`]s
-    #[allow(private_bounds)]
-    pub trait IsOk: SealedIsOk {}
+/// A trait representing a valid [`Hasher`] security level
+#[allow(private_bounds)]
+pub trait SecurityLevel: Sealed {
+    /// The security strength level, represented in terms of bits
+    const BITS: usize;
 
-    impl<T> IsOk for T where T: SealedIsOk {}
+    /// The canonical [`struct@Hash`] length associated with this
+    /// [`SecurityLevel`]
+    type Hash: Default + HashContainer;
+}
 
-    /// Container for the `SECURITY_LEVEL` parameter
-    pub struct SecurityLevel<const SECURITY_LEVEL: usize>;
+/// The security strength level associated with the KT128 extendable output
+/// function
+pub struct KT128;
 
-    impl SealedIsOk for SecurityLevel<128> {}
-    impl SealedIsOk for SecurityLevel<256> {}
+impl Sealed for KT128 {}
+
+impl SecurityLevel for KT128 {
+    const BITS: usize = 128;
+    type Hash = Hash<32>;
+}
+
+/// The security strength level associated with the KT256 extendable output
+/// function
+pub struct KT256;
+
+impl Sealed for KT256 {}
+
+impl SecurityLevel for KT256 {
+    const BITS: usize = 256;
+    type Hash = Hash<64>;
+}
+
+/// An internal trait used to allow the [`struct@Hash`] type to be polymorphic
+/// over the number of bytes it contains while still working as a return
+/// type from [`Hasher`] methods
+trait HashContainer {
+    /// A raw pointer to the memory region containing the hash
+    fn ptr(&mut self) -> *mut u8;
+
+    /// The length of the memory region containing the hash (in bytes)
+    fn len() -> usize;
 }
 
 /// Hash a slice of bytes all at once. For multiple writes, the optional
 /// customization string, or extended output bytes, see [`Hasher`]
 ///
-/// The `SECURITY_LEVEL` parameter indicates the security strength level in
-/// terms of bits. Valid values for it are:
+/// The `N` parameter indicates the security strength level in number of bits.
+/// Valid values for it are:
 ///
-/// - `128usize` - the `KT128` hash function
-/// - `256usize` - the `KT256` hash function
+/// - [`KT128`]
+/// - [`KT256`]
 ///
 /// Any other value will fail to compile
 ///
 /// [`Hasher`]: struct.Hasher.html
-pub fn hash<const SECURITY_LEVEL: usize>(input: &[u8]) -> Hash
+pub fn hash<N>(input: &[u8]) -> N::Hash
 where
-    bounds::SecurityLevel<SECURITY_LEVEL>: bounds::IsOk,
+    N: SecurityLevel,
 {
-    let mut hasher = Hasher::<SECURITY_LEVEL>::new();
+    let mut hasher = Hasher::<N>::new();
     hasher.update(input);
     hasher.finalize()
 }
 
 /// An incremental hash state that can accept any number of writes
 ///
-/// The `SECURITY_LEVEL` parameter indicates the security strength level in
-/// terms of bits. Valid values for it are:
+/// The `N` parameter indicates the security strength level in number of bits.
+/// Valid values for it are:
 ///
-/// - `128usize` - the `KT128` hash function
-/// - `256usize` - the `KT256` hash function
+/// - [`KT128`]
+/// - [`KT256`]
 ///
 /// Any other value will fail to compile
 ///
@@ -92,43 +121,40 @@ where
 ///
 /// ```
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// # use marsupial::Hasher;
+/// # use marsupial::{KT128, Hasher};
 /// // hash an input incrementally
-/// let mut hasher = Hasher::<128>::new();
+/// let mut hasher = Hasher::<KT128>::new();
 /// hasher.update(b"foo");
 /// hasher.update(b"bar");
 /// hasher.update(b"baz");
-/// assert_eq!(hasher.finalize(), marsupial::hash::<128>(b"foobarbaz"));
+/// assert_eq!(hasher.finalize(), marsupial::hash::<KT128>(b"foobarbaz"));
 ///
 /// // extended output. `OutputReader` also implements `Read` and `Seek`
-/// let mut hasher = Hasher::<128>::new();
+/// let mut hasher = Hasher::<KT128>::new();
 /// hasher.update(b"foobarbaz");
 /// let mut output = [0; 1000];
 /// let mut output_reader = hasher.finalize_xof();
 /// output_reader.squeeze(&mut output);
-/// assert_eq!(&output[..32], marsupial::hash::<128>(b"foobarbaz").as_bytes());
+/// assert_eq!(&output[..32], marsupial::hash::<KT128>(b"foobarbaz").as_bytes());
 /// # Ok(())
 /// # }
 /// ```
 #[derive(Clone)]
-pub struct Hasher<const SECURITY_LEVEL: usize>(marsupial_sys::KangarooTwelve_Instance);
+pub struct Hasher<N>(marsupial_sys::KangarooTwelve_Instance, PhantomData<N>);
 
-impl<const SECURITY_LEVEL: usize> Hasher<SECURITY_LEVEL>
+impl<N> Hasher<N>
 where
-    bounds::SecurityLevel<SECURITY_LEVEL>: bounds::IsOk,
+    N: SecurityLevel,
 {
     /// The number of bytes hashed or output per block
-    pub const RATE: usize = (1600 - (2 * SECURITY_LEVEL)) / 8;
+    pub const RATE: usize = (1600 - (2 * N::BITS)) / 8;
 
     /// Construct a new [`Hasher`] for the regular hash function
     pub fn new() -> Self {
         let mut inner = MaybeUninit::uninit();
         let inner = unsafe {
-            let ret = marsupial_sys::KangarooTwelve_Initialize(
-                inner.as_mut_ptr(),
-                SECURITY_LEVEL as i32,
-                0,
-            );
+            let ret =
+                marsupial_sys::KangarooTwelve_Initialize(inner.as_mut_ptr(), N::BITS as i32, 0);
             debug_assert_eq!(0, ret);
             inner.assume_init()
         };
@@ -139,7 +165,7 @@ where
         debug_assert_eq!(inner.phase, 1);
         debug_assert_eq!(0, inner.finalNode.byteIOIndex);
         debug_assert_eq!(0, inner.finalNode.squeezing);
-        Self(inner)
+        Self(inner, PhantomData)
     }
 
     /// Add input bytes to the hash state. You can call this any number of
@@ -159,7 +185,7 @@ where
     ///
     /// You can only finalize a [`Hasher`] once. Additional calls to any of
     /// the finalize methods will panic
-    pub fn finalize(&mut self) -> Hash {
+    pub fn finalize(&mut self) -> N::Hash {
         self.finalize_custom(&[])
     }
 
@@ -168,9 +194,9 @@ where
     ///
     /// You can only finalize a [`Hasher`] once. Additional calls to any of
     /// the finalize methods will panic
-    pub fn finalize_custom(&mut self, customization: &[u8]) -> Hash {
+    pub fn finalize_custom(&mut self, customization: &[u8]) -> N::Hash {
         assert_eq!(self.0.phase, 1, "this instance has already been finalized");
-        let mut bytes = [0; 32];
+        let mut hash = N::Hash::default();
         unsafe {
             let ret = marsupial_sys::KangarooTwelve_Final(
                 &mut self.0,
@@ -180,10 +206,10 @@ where
             );
             debug_assert_eq!(0, ret);
             let ret =
-                marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, bytes.as_mut_ptr(), bytes.len());
+                marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, hash.ptr(), N::Hash::len());
             debug_assert_eq!(0, ret);
         }
-        bytes.into()
+        hash
     }
 
     /// Finalize the hash state and return an [`OutputReader`], which can
@@ -221,16 +247,19 @@ where
     }
 }
 
-impl<const SECURITY_LEVEL: usize> Default for Hasher<SECURITY_LEVEL>
+impl<N> Default for Hasher<N>
 where
-    bounds::SecurityLevel<SECURITY_LEVEL>: bounds::IsOk,
+    N: SecurityLevel,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<const SECURITY_LEVEL: usize> fmt::Debug for Hasher<SECURITY_LEVEL> {
+impl<N> fmt::Debug for Hasher<N>
+where
+    N: SecurityLevel,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Hasher").finish_non_exhaustive()
     }
@@ -258,7 +287,7 @@ impl<const SECURITY_LEVEL: usize> fmt::Debug for Hasher<SECURITY_LEVEL> {
 /// let hash_hex = "d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24";
 /// let hash_bytes = hex::decode(hash_hex)?;
 /// let hash_array: [u8; 32] = hash_bytes[..].try_into()?;
-/// let hash: Hash = hash_array.into();
+/// let hash: Hash<32> = hash_array.into();
 /// # Ok(())
 /// # }
 /// ```
@@ -271,69 +300,69 @@ impl<const SECURITY_LEVEL: usize> fmt::Debug for Hasher<SECURITY_LEVEL> {
 /// [`to_hex`]: #method.to_hex
 /// [`hex`]: https://crates.io/crates/hex
 #[derive(Clone, Copy, Hash)]
-pub struct Hash([u8; 32]);
+pub struct Hash<const N: usize>([u8; N]);
 
-impl Hash {
+impl<const N: usize> Hash<N> {
     /// The bytes of the [`struct@Hash`]. Note that byte arrays don't provide
     /// constant-time equality checking, so if  you need to compare hashes,
     /// prefer the [`struct@Hash`] type
     #[inline]
-    pub fn as_bytes(&self) -> &[u8; 32] {
+    pub fn as_bytes(&self) -> &[u8; N] {
         &self.0
-    }
-
-    /// The hexadecimal encoding of the [`struct@Hash`]. The returned [`ArrayString`]
-    /// is of a fixed size and doesn't allocate memory on the heap. Note that
-    /// [`ArrayString`] doesn't provide constant-time equality checking, so if
-    /// you need to compare hashes, prefer the `Hash` type.
-    ///
-    /// [`ArrayString`]: https://docs.rs/arrayvec/0.5.1/arrayvec/struct.ArrayString.html
-    pub fn to_hex(&self) -> ArrayString<{ 2 * 32 }> {
-        let mut s = ArrayString::new();
-        let table = b"0123456789abcdef";
-        for &b in self.0.iter() {
-            s.push(table[(b >> 4) as usize] as char);
-            s.push(table[(b & 0xf) as usize] as char);
-        }
-        s
     }
 }
 
-impl From<[u8; 32]> for Hash {
+impl<const N: usize> From<[u8; N]> for Hash<N> {
     #[inline]
-    fn from(bytes: [u8; 32]) -> Self {
+    fn from(bytes: [u8; N]) -> Self {
         Self(bytes)
     }
 }
 
-impl From<Hash> for [u8; 32] {
+impl<const N: usize> From<Hash<N>> for [u8; N] {
     #[inline]
-    fn from(hash: Hash) -> Self {
+    fn from(hash: Hash<N>) -> Self {
         hash.0
     }
 }
 
 /// This implementation is constant-time
-impl PartialEq for Hash {
+impl<const N: usize> PartialEq for Hash<N> {
     #[inline]
-    fn eq(&self, other: &Hash) -> bool {
-        constant_time_eq::constant_time_eq_32(&self.0, &other.0)
+    fn eq(&self, other: &Hash<N>) -> bool {
+        constant_time_eq::constant_time_eq_n(&self.0, &other.0)
     }
 }
 
 /// This implementation is constant-time
-impl PartialEq<[u8; 32]> for Hash {
+impl<const N: usize> PartialEq<[u8; N]> for Hash<N> {
     #[inline]
-    fn eq(&self, other: &[u8; 32]) -> bool {
-        constant_time_eq::constant_time_eq_32(&self.0, other)
+    fn eq(&self, other: &[u8; N]) -> bool {
+        constant_time_eq::constant_time_eq_n(&self.0, other)
     }
 }
 
-impl Eq for Hash {}
+impl<const N: usize> Eq for Hash<N> {}
 
-impl fmt::Debug for Hash {
+impl<const N: usize> fmt::Debug for Hash<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Hash").field(&self.to_hex()).finish()
+        f.debug_tuple("Hash").finish() /* .field(&self.to_hex()).finish() */
+    }
+}
+
+impl<const N: usize> Default for Hash<N> {
+    fn default() -> Self {
+        Self([0; N])
+    }
+}
+
+impl<const N: usize> HashContainer for Hash<N> {
+    fn ptr(&mut self) -> *mut u8 {
+        self.0.as_mut_ptr()
+    }
+
+    fn len() -> usize {
+        N
     }
 }
 

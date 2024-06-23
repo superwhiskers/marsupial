@@ -4,8 +4,8 @@
 //! Windows. However, it does mean that we'll need to be careful to track build
 //! changes when we re-vendor upstream code.
 
-use std::{env, path::PathBuf};
 use bindgen::callbacks::ParseCallbacks;
+use std::{env, path::PathBuf};
 
 #[derive(Debug)]
 struct ParseDoxygen;

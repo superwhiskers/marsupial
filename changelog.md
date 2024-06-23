@@ -9,10 +9,18 @@
   - note: it doesn't seem rustc is reliable at detecting support for the arm
     sha3 extensions
 - parsing of doxygen comments in `marsupial-sys`
+- parameterization of `Hash`, permitting constant time equality for hashes of
+  arbitrary length
+- support for getting out hashes of `KT256` in its canonical length (64 bytes)
 
 ### changed
 
 - enabled `target-cpu=native` during benchmarking and tests
+- the manner in which the security level is specified
+
+### removed
+
+- hexadecimal formatting of `Hash` (for now)
 
 ## [0.0.4] - 2024-06-22
 

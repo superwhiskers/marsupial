@@ -22,7 +22,6 @@ keywords.workspace = true
 readme.workspace = true
 
 [dependencies]
-arrayvec = "0.7"
 constant_time_eq = "0.3"
 
 [dependencies.marsupial-sys]

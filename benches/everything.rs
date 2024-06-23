@@ -1,4 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use marsupial::{KT128, KT256};
 use rand::prelude::*;
 
 const KIB: usize = 1024;
@@ -48,7 +49,7 @@ fn bench_kt128(c: &mut Criterion) {
 
         let mut marsupial_input = black_box(RandomInput::new(bytes));
         g.bench_function(BenchmarkId::new("marsupial", n), |b| {
-            b.iter(|| marsupial::hash::<128>(marsupial_input.get()))
+            b.iter(|| marsupial::hash::<KT128>(marsupial_input.get()))
         });
 
         let mut k12_input = black_box(RandomInput::new(bytes));
@@ -93,7 +94,7 @@ fn bench_kt256(c: &mut Criterion) {
 
         let mut marsupial_input = black_box(RandomInput::new(bytes));
         g.bench_function(BenchmarkId::new("marsupial", n), |b| {
-            b.iter(|| marsupial::hash::<256>(marsupial_input.get()))
+            b.iter(|| marsupial::hash::<KT256>(marsupial_input.get()))
         });
     }
 }
