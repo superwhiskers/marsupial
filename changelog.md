@@ -8,6 +8,7 @@
   `TargetImplementation::Armv8Asha3`
   - note: it doesn't seem rustc is reliable at detecting support for the arm
     sha3 extensions
+- parsing of doxygen comments in `marsupial-sys`
 
 ### changed
 

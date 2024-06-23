@@ -5,6 +5,16 @@
 //! changes when we re-vendor upstream code.
 
 use std::{env, path::PathBuf};
+use bindgen::callbacks::ParseCallbacks;
+
+#[derive(Debug)]
+struct ParseDoxygen;
+
+impl ParseCallbacks for ParseDoxygen {
+    fn process_comment(&self, comment: &str) -> Option<String> {
+        Some(doxygen_rs::transform(comment))
+    }
+}
 
 enum TargetImplementation {
     Optimized64,
@@ -65,6 +75,7 @@ fn main() {
             format!("-m{target_pointer_width}"),
         ])
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+        .parse_callbacks(Box::new(ParseDoxygen))
         .generate()
         .expect("Unable to generate C bindings");
 
