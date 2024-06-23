@@ -1,5 +1,18 @@
 # changelog
 
+## [unreleased]
+
+### added
+
+- support for xkcp/k12's `ARMv8Asha3` implementation behind
+  `TargetImplementation::Armv8Asha3`
+  - note: it doesn't seem rustc is reliable at detecting support for the arm
+    sha3 extensions
+
+### changed
+
+- enabled `target-cpu=native` during benchmarking and tests
+
 ## [0.0.4] - 2024-06-22
 
 ## changed
