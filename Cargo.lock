@@ -450,7 +450,7 @@ checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
 
 [[package]]
 name = "marsupial"
-version = "0.0.2"
+version = "0.0.4"
 dependencies = [
  "arrayvec",
  "constant_time_eq",
@@ -466,7 +466,7 @@ dependencies = [
 
 [[package]]
 name = "marsupial-sys"
-version = "0.0.2"
+version = "0.0.4"
 dependencies = [
  "bindgen",
  "cc",

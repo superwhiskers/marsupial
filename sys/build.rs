@@ -12,6 +12,7 @@ enum TargetImplementation {
     Optimized64NoAsm,
     Plain64,
     Inplace32BI,
+    Armv8Asha3,
 }
 
 fn main() {
@@ -24,6 +25,11 @@ fn main() {
         "big" => false,
         e => panic!("unexpected endianness: {}", e),
     };
+    let target_has_armv8_sha3 = env::var("CARGO_CFG_TARGET_FEATURE")
+        .unwrap()
+        .as_str()
+        .split(',')
+        .any(|f| f == "sha3");
 
     let target_implementation = if target_arch == "x86_64" {
         if target_os != "windows" {
@@ -33,6 +39,8 @@ fn main() {
             // assembler syntax version.
             TargetImplementation::Optimized64NoAsm
         }
+    } else if target_arch == "aarch64" && target_has_armv8_sha3 {
+        TargetImplementation::Armv8Asha3
     } else if target_pointer_width == "64" {
         TargetImplementation::Plain64
     } else if target_pointer_width == "32" {
@@ -51,6 +59,7 @@ fn main() {
                         "Optimized64",
                     TargetImplementation::Plain64 => "Plain64",
                     TargetImplementation::Inplace32BI => "Inplace32BI",
+                    TargetImplementation::Armv8Asha3 => "ARMv8Asha3",
                 }
             ),
             format!("-m{target_pointer_width}"),
@@ -86,6 +95,9 @@ fn main() {
         }
         TargetImplementation::Inplace32BI => {
             base_build.include("src/XKCP-K12/lib/Inplace32BI");
+        }
+        TargetImplementation::Armv8Asha3 => {
+            base_build.include("src/XKCP-K12/lib/ARMv8Asha3");
         }
     }
     if let TargetImplementation::Optimized64NoAsm = &target_implementation {
@@ -153,6 +165,23 @@ fn main() {
         }
         TargetImplementation::Inplace32BI => {
             portable_build.file("src/XKCP-K12/lib/Inplace32BI/KeccakP-1600-inplace32BI.c");
+        }
+        TargetImplementation::Armv8Asha3 => {
+            let mut sha3_build = base_build.clone();
+            sha3_build.flag("-march=armv8.4-a+sha3");
+            sha3_build.file("src/XKCP-K12/lib/ARMv8Asha3/KeccakP-1600-opt64.c");
+            sha3_build.compile("k12_sha3");
+
+            let mut asm_build = base_build.clone();
+            asm_build.flag("-march=armv8.4-a+sha3");
+            if target_os == "macos" {
+                // i'm unable to test if this actually makes this work, i lack a
+                // macOS device to test this on
+                asm_build.flag("-xassembler-with-cpp");
+                asm_build.flag("-Wa,-defsym,macOS=1");
+            }
+            asm_build.file("src/XKCP-K12/lib/ARMv8Asha3/KeccakP-1600-ARMv8Asha3.S");
+            asm_build.compile("k12_asm");
         }
     }
 

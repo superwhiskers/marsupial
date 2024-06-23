@@ -1,0 +1,3 @@
+# used to ensure the sha3 extensions are detected during benchmarks
+[build]
+rustflags = "-C target-cpu=native"
