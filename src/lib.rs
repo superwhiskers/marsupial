@@ -48,9 +48,13 @@ pub trait SecurityLevel: Sealed {
     /// The security strength level, represented in terms of bits
     const BITS: usize;
 
+    /// The array length of the canonical [`struct@Hash`] associated with
+    /// this [`SecurityLevel`]
+    const HASH_ARRAY_LENGTH: usize;
+
     /// The canonical [`struct@Hash`] length associated with this
     /// [`SecurityLevel`]
-    type Hash: Default + HashContainer;
+    type Hash: Default + fmt::Debug + Eq + PartialEq + Into<Vec<u8>> + HashContainer;
 }
 
 /// The security strength level associated with the KT128 extendable output
@@ -61,6 +65,7 @@ impl Sealed for KT128 {}
 
 impl SecurityLevel for KT128 {
     const BITS: usize = 128;
+    const HASH_ARRAY_LENGTH: usize = 32;
     type Hash = Hash<32>;
 }
 
@@ -72,6 +77,7 @@ impl Sealed for KT256 {}
 
 impl SecurityLevel for KT256 {
     const BITS: usize = 256;
+    const HASH_ARRAY_LENGTH: usize = 64;
     type Hash = Hash<64>;
 }
 
@@ -268,8 +274,8 @@ where
 /// An output of the default size, 32 bytes, which provides constant-time
 /// equality checking
 ///
-/// `Hash` implements [`From`] and [`Into`] for `[u8; 32]`, and it provides an
-/// explicit [`as_bytes`] method returning `&[u8; 32]`. However, byte arrays
+/// `Hash` implements [`From`] and [`Into`] for `[u8; N]`, and it provides an
+/// explicit [`as_bytes`] method returning `&[u8; N]`. However, byte arrays
 /// and slices don't provide constant-time equality checking, which is often a
 /// security requirement in software that handles private data. `Hash` doesn't
 /// implement [`Deref`] or [`AsRef`], to avoid situations where a type
@@ -319,6 +325,13 @@ impl<const N: usize> From<[u8; N]> for Hash<N> {
     }
 }
 
+impl<const N: usize> From<Hash<N>> for Vec<u8> {
+    #[inline]
+    fn from(hash: Hash<N>) -> Self {
+        hash.0.into()
+    }
+}
+
 impl<const N: usize> From<Hash<N>> for [u8; N] {
     #[inline]
     fn from(hash: Hash<N>) -> Self {
@@ -357,10 +370,12 @@ impl<const N: usize> Default for Hash<N> {
 }
 
 impl<const N: usize> HashContainer for Hash<N> {
+    #[inline]
     fn ptr(&mut self) -> *mut u8 {
         self.0.as_mut_ptr()
     }
 
+    #[inline]
     fn len() -> usize {
         N
     }

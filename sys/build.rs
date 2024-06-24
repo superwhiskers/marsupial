@@ -36,7 +36,7 @@ fn main() {
         e => panic!("unexpected endianness: {}", e),
     };
     let target_has_armv8_sha3 = env::var("CARGO_CFG_TARGET_FEATURE")
-        .unwrap()
+        .unwrap_or("".to_string())
         .as_str()
         .split(',')
         .any(|f| f == "sha3");

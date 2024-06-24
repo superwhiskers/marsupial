@@ -1,5 +1,6 @@
 use crate::{hash, Hasher, KT128, KT256};
 use digest::{ExtendableOutput, Update, XofReader};
+use proptest::{collection, prelude::*};
 use tiny_keccak::{IntoXof, Xof};
 
 #[test]
@@ -95,6 +96,31 @@ fn kt128_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Str
     assert_eq!(output, tk_output);
 
     hex::encode(output)
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 1024,
+        ..ProptestConfig::default()
+    })]
+
+    #[test]
+    fn validate_sanity_kt128(
+        data in collection::vec(any::<u8>(), 0..10_000),
+        customization in collection::vec(any::<u8>(), 0..10_000),
+        size in 0usize..1_000usize,
+    ) {
+        assert_eq!(size * 2, kt128_hex(data.as_slice(), customization.as_slice(), size).len());
+    }
+
+    #[test]
+    fn validate_sanity_kt256(
+        data in collection::vec(any::<u8>(), 0..10_000),
+        customization in collection::vec(any::<u8>(), 0..10_000),
+        size in 0usize..1_000usize,
+    ) {
+        assert_eq!(size * 2, kt256_hex(data.as_slice(), customization.as_slice(), size).len());
+    }
 }
 
 // the KT128 ones are from https://eprint.iacr.org/2016/770.pdf,

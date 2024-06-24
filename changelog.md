@@ -12,6 +12,8 @@
 - parameterization of `Hash`, permitting constant time equality for hashes of
   arbitrary length
 - support for getting out hashes of `KT256` in its canonical length (64 bytes)
+- property checking of hash functionality
+- fuzzing of hash functionality
 
 ### changed
 

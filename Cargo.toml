@@ -1,5 +1,11 @@
 [workspace]
-members = ["sys"]
+members = [
+  "sys",
+
+  "fuzzing/target-marsupial-kt128",
+  "fuzzing/target-marsupial-kt256",
+  "fuzzing/fuzzing-utils",
+]
 resolver = "2"
 
 [workspace.package]
@@ -35,6 +41,7 @@ k12 = "0.3"
 page_size = "0.6"
 rand = "0.8"
 criterion = "0.5"
+proptest = "1"
 
 [dev-dependencies.tiny-keccak]
 version = "2"

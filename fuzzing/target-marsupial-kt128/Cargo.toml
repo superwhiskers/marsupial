@@ -1,0 +1,14 @@
+[package]
+name = "target-marsupial-kt128"
+publish = false
+edition.workspace = true
+
+[dependencies]
+afl = "0.15"
+arbitrary = "1"
+
+[dependencies.fuzzing-utils]
+path = "../fuzzing-utils"
+
+[dependencies.marsupial]
+path = "../../"

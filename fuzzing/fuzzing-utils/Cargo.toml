@@ -1,0 +1,11 @@
+[package]
+name = "fuzzing-utils"
+publish = false
+edition.workspace = true
+
+[dependencies.arbitrary]
+version = "1"
+features = ["derive"]
+
+[dependencies.marsupial]
+path = "../../"
