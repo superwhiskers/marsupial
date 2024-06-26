@@ -3,22 +3,6 @@ use digest::{ExtendableOutput, Update, XofReader};
 use proptest::{collection, prelude::*};
 use tiny_keccak::{IntoXof, Xof};
 
-#[test]
-#[should_panic]
-fn test_update_after_finalize_panics() {
-    let mut hasher = Hasher::<KT128>::new();
-    hasher.finalize();
-    hasher.update(&[]);
-}
-
-#[test]
-#[should_panic]
-fn test_finalize_twice_panics() {
-    let mut hasher = Hasher::<KT128>::new();
-    hasher.finalize();
-    hasher.finalize();
-}
-
 fn fill_pattern(buf: &mut [u8]) {
     // repeating the pattern 0x00, 0x01, 0x02, ..., 0xFA as many times as necessary
     for i in 0..buf.len() {

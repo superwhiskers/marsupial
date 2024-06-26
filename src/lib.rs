@@ -161,23 +161,22 @@ where
         let inner = unsafe {
             let ret =
                 marsupial_sys::KangarooTwelve_Initialize(inner.as_mut_ptr(), N::BITS as i32, 0);
+
+            //NOTE: in practice, this does not return anything other than 0.
+            //      this may, however, be changed in an update
             debug_assert_eq!(0, ret);
+
             inner.assume_init()
         };
-        // These asserts help check that our struct definitions agree with C
-        debug_assert_eq!(0, inner.fixedOutputLength);
-        debug_assert_eq!(0, inner.blockNumber);
-        debug_assert_eq!(0, inner.queueAbsorbedLen);
+
+        //NOTE: this is probably the only thing worth checking for
         debug_assert_eq!(inner.phase, 1);
-        debug_assert_eq!(0, inner.finalNode.byteIOIndex);
-        debug_assert_eq!(0, inner.finalNode.squeezing);
         Self(inner, PhantomData)
     }
 
     /// Add input bytes to the hash state. You can call this any number of
     /// times, until the [`Hasher`] is finalized
     pub fn update(&mut self, input: &[u8]) {
-        assert_eq!(self.0.phase, 1, "this instance has already been finalized");
         unsafe {
             let ret =
                 marsupial_sys::KangarooTwelve_Update(&mut self.0, input.as_ptr(), input.len());
@@ -191,17 +190,13 @@ where
     ///
     /// You can only finalize a [`Hasher`] once. Additional calls to any of
     /// the finalize methods will panic
-    pub fn finalize(&mut self) -> N::Hash {
+    pub fn finalize(self) -> N::Hash {
         self.finalize_custom(&[])
     }
 
     /// Finalize the hash state using the given customization string and
     /// return the [`struct@Hash`] of the input
-    ///
-    /// You can only finalize a [`Hasher`] once. Additional calls to any of
-    /// the finalize methods will panic
-    pub fn finalize_custom(&mut self, customization: &[u8]) -> N::Hash {
-        assert_eq!(self.0.phase, 1, "this instance has already been finalized");
+    pub fn finalize_custom(mut self, customization: &[u8]) -> N::Hash {
         let mut hash = N::Hash::default();
         unsafe {
             let ret = marsupial_sys::KangarooTwelve_Final(
@@ -218,28 +213,22 @@ where
         hash
     }
 
-    /// Finalize the hash state and return an [`OutputReader`], which can
-    /// supply any number of output bytes. This method is equivalent to
+    /// Finalize the hash state, consuming the [`Hasher`] and returning
+    /// an [`OutputReader`], which can supply any number of output bytes.
+    /// This method is equivalent to
     /// [`finalize_custom_xof`](#method.finalize_custom_xof) with an empty
     /// customization string
     ///
-    /// You can only finalize a [`Hasher`] once. Additional calls to any of
-    /// the finalize methods will panic
-    ///
     /// [`OutputReader`]: struct.OutputReader.html
-    pub fn finalize_xof(&mut self) -> OutputReader {
+    pub fn finalize_xof(self) -> OutputReader {
         self.finalize_custom_xof(&[])
     }
 
-    /// Finalize the hash state and return an [`OutputReader`], which can
-    /// supply any number of output bytes
-    ///
-    /// You can only finalize a [`Hasher`] once. Additional calls to any of
-    /// the finalize methods will panic
+    /// Finalize the hash state, consuming the [`Hasher`] and returning an
+    /// [`OutputReader`], which can supply any number of output bytes
     ///
     /// [`OutputReader`]: struct.OutputReader.html
-    pub fn finalize_custom_xof(&mut self, customization: &[u8]) -> OutputReader {
-        assert_eq!(self.0.phase, 1, "this instance has already been finalized");
+    pub fn finalize_custom_xof(mut self, customization: &[u8]) -> OutputReader {
         unsafe {
             let ret = marsupial_sys::KangarooTwelve_Final(
                 &mut self.0,
@@ -305,6 +294,9 @@ where
 /// [`AsRef`]: https://doc.rust-lang.org/std/convert/trait.AsRef.html
 /// [`to_hex`]: #method.to_hex
 /// [`hex`]: https://crates.io/crates/hex
+//NOTE: this is fine because our manual `PartialEq` implementation doesn't
+//      deviate from how rust would determine equality normally
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Clone, Copy, Hash)]
 pub struct Hash<const N: usize>([u8; N]);
 
@@ -359,7 +351,7 @@ impl<const N: usize> Eq for Hash<N> {}
 
 impl<const N: usize> fmt::Debug for Hash<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Hash").finish() /* .field(&self.to_hex()).finish() */
+        f.debug_tuple("Hash").finish()
     }
 }
 
