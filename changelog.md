@@ -1,5 +1,12 @@
 # changelog
 
+## [unreleased]
+
+### changed
+
+- fixed remaining incorrect documentation comments referencing a panic after
+  repeated finalization
+
 ## [0.0.5] - 2024-06-26
 
 ### added

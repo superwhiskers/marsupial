@@ -184,18 +184,16 @@ where
         }
     }
 
-    /// Finalize the hash state and return the [`struct@Hash`] of the input. This
-    /// method is equivalent to [`finalize_custom`](#method.finalize_custom)
-    /// with an empty customization string
-    ///
-    /// You can only finalize a [`Hasher`] once. Additional calls to any of
-    /// the finalize methods will panic
+    /// Finalize the hash state, consuming the [`Hasher`], and return the
+    /// [`struct@Hash`] of the input. This method is equivalent to
+    /// [`finalize_custom`](#method.finalize_custom) with an empty
+    /// customization string
     pub fn finalize(self) -> N::Hash {
         self.finalize_custom(&[])
     }
 
-    /// Finalize the hash state using the given customization string and
-    /// return the [`struct@Hash`] of the input
+    /// Finalize the hash state, consuming the [`Hasher`], and return the
+    /// [`struct@Hash`] of the input
     pub fn finalize_custom(mut self, customization: &[u8]) -> N::Hash {
         let mut hash = N::Hash::default();
         unsafe {
