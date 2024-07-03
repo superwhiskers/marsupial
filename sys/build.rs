@@ -88,6 +88,8 @@ fn main() {
     // compilation steps below.
     let mut base_build = cc::Build::new();
     base_build.include("src/XKCP-K12/lib");
+    // disable debug assertions
+    base_build.define("NDEBUG", "1");
     // brg_endian.h tries to detect the target endianness, but it fails on e.g.
     // mips. Cargo knows better, so we explicitly set the preprocessor
     // variables that brg_endian.h looks for.

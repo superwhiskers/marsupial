@@ -1,11 +1,12 @@
 # changelog
 
-## [unreleased]
+## [0.0.6] - 2024-07-03
 
 ### changed
 
 - fixed remaining incorrect documentation comments referencing a panic after
   repeated finalization
+- update xkcp/k12
 
 ## [0.0.5] - 2024-06-26
 
