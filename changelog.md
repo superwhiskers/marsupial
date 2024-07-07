@@ -1,5 +1,13 @@
 # changelog
 
+## [0.1.0] - 2024-07-07
+
+### changed
+
+- bumped version to a "quasi-stable" version number
+  - it may be bumped to a proper 1.x.x release if no additional things are
+    found to be necessary
+
 ## [0.0.6] - 2024-07-03
 
 ### changed
