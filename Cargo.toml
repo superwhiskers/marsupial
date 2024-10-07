@@ -47,6 +47,10 @@ proptest = "1"
 version = "2"
 features = ["k12"]
 
+[dev-dependencies.blake3]
+version = "1"
+features = ["rayon"]
+
 [[bench]]
 name = "everything"
 harness = false

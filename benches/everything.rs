@@ -40,6 +40,30 @@ impl RandomInput {
     }
 }
 
+fn bench_blake3(c: &mut Criterion) {
+    let mut g = c.benchmark_group("BLAKE3");
+
+    for n in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024].iter() {
+        let bytes = n * KIB;
+        g.throughput(Throughput::Bytes(bytes as u64));
+
+        let mut marsupial_input_kt128 = black_box(RandomInput::new(bytes));
+        g.bench_function(BenchmarkId::new("marsupial-kt128", n), |b| {
+            b.iter(|| marsupial::hash::<KT128>(marsupial_input_kt128.get()))
+        });
+
+        let mut marsupial_input_kt256 = black_box(RandomInput::new(bytes));
+        g.bench_function(BenchmarkId::new("marsupial-kt256", n), |b| {
+            b.iter(|| marsupial::hash::<KT256>(marsupial_input_kt256.get()))
+        });
+
+        let mut blake3_input = black_box(RandomInput::new(bytes));
+        g.bench_function(BenchmarkId::new("blake3", n), |b| {
+            b.iter(|| blake3::hash(blake3_input.get()))
+        });
+    }
+}
+
 fn bench_kt128(c: &mut Criterion) {
     let mut g = c.benchmark_group("KT128");
 
@@ -99,5 +123,5 @@ fn bench_kt256(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_kt128, bench_kt256);
+criterion_group!(benches, bench_kt128, bench_kt256, bench_blake3);
 criterion_main!(benches);
