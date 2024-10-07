@@ -1,5 +1,11 @@
 # changelog
 
+## [unreleased]
+
+### changed
+
+- added blake3 / marsupial comparsion benchmark to the benchmarking code
+
 ## [0.1.0] - 2024-07-07
 
 ### changed
