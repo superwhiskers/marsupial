@@ -54,7 +54,12 @@ pub trait SecurityLevel: Sealed {
 
     /// The canonical [`struct@Hash`] length associated with this
     /// [`SecurityLevel`]
-    type Hash: Default + fmt::Debug + Eq + PartialEq + Into<Vec<u8>> + HashContainer;
+    type Hash: Default
+        + fmt::Debug
+        + Eq
+        + PartialEq
+        + Into<Vec<u8>>
+        + HashContainer;
 }
 
 /// The security strength level associated with the KT128 extendable output
@@ -159,8 +164,11 @@ where
     pub fn new() -> Self {
         let mut inner = MaybeUninit::uninit();
         let inner = unsafe {
-            let ret =
-                marsupial_sys::KangarooTwelve_Initialize(inner.as_mut_ptr(), N::BITS as i32, 0);
+            let ret = marsupial_sys::KangarooTwelve_Initialize(
+                inner.as_mut_ptr(),
+                N::BITS as i32,
+                0,
+            );
 
             //NOTE: in practice, this does not return anything other than 0.
             //      this may, however, be changed in an update
@@ -178,8 +186,11 @@ where
     /// times, until the [`Hasher`] is finalized
     pub fn update(&mut self, input: &[u8]) {
         unsafe {
-            let ret =
-                marsupial_sys::KangarooTwelve_Update(&mut self.0, input.as_ptr(), input.len());
+            let ret = marsupial_sys::KangarooTwelve_Update(
+                &mut self.0,
+                input.as_ptr(),
+                input.len(),
+            );
             debug_assert_eq!(0, ret);
         }
     }
@@ -204,8 +215,11 @@ where
                 customization.len(),
             );
             debug_assert_eq!(0, ret);
-            let ret =
-                marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, hash.ptr(), N::Hash::len());
+            let ret = marsupial_sys::KangarooTwelve_Squeeze(
+                &mut self.0,
+                hash.ptr(),
+                N::Hash::len(),
+            );
             debug_assert_eq!(0, ret);
         }
         hash
@@ -226,7 +240,10 @@ where
     /// [`OutputReader`], which can supply any number of output bytes
     ///
     /// [`OutputReader`]: struct.OutputReader.html
-    pub fn finalize_custom_xof(mut self, customization: &[u8]) -> OutputReader {
+    pub fn finalize_custom_xof(
+        mut self,
+        customization: &[u8],
+    ) -> OutputReader {
         unsafe {
             let ret = marsupial_sys::KangarooTwelve_Final(
                 &mut self.0,
@@ -386,10 +403,16 @@ impl OutputReader {
     ///
     /// [`Read::read`]: #method.read
     pub fn squeeze(&mut self, buf: &mut [u8]) {
-        debug_assert_eq!(self.0.phase, 3, "this instance has not yet been finalized");
+        debug_assert_eq!(
+            self.0.phase, 3,
+            "this instance has not yet been finalized"
+        );
         unsafe {
-            let ret =
-                marsupial_sys::KangarooTwelve_Squeeze(&mut self.0, buf.as_mut_ptr(), buf.len());
+            let ret = marsupial_sys::KangarooTwelve_Squeeze(
+                &mut self.0,
+                buf.as_mut_ptr(),
+                buf.len(),
+            );
             debug_assert_eq!(0, ret);
         }
     }

@@ -1,4 +1,4 @@
-use crate::{hash, Hasher, KT128, KT256};
+use crate::{Hasher, KT128, KT256, hash};
 use digest::{ExtendableOutput, Update, XofReader};
 use proptest::{collection, prelude::*};
 use tiny_keccak::{IntoXof, Xof};
@@ -10,7 +10,11 @@ fn fill_pattern(buf: &mut [u8]) {
     }
 }
 
-fn kt256_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> String {
+fn kt256_hex(
+    input: &[u8],
+    customization: &[u8],
+    num_output_bytes: usize,
+) -> String {
     let mut hasher = Hasher::<KT256>::new();
     hasher.update(input);
     let mut output = vec![0; num_output_bytes];
@@ -31,14 +35,19 @@ fn kt256_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Str
     // check that using the all-at-once function gives the same answer if possible
     if customization.is_empty() {
         let hash3 = hash::<KT256>(input);
-        let compare_len = std::cmp::min(hash3.as_bytes().len(), num_output_bytes);
+        let compare_len =
+            std::cmp::min(hash3.as_bytes().len(), num_output_bytes);
         assert_eq!(&hash3.as_bytes()[..compare_len], &output[..compare_len]);
     }
 
     hex::encode(output)
 }
 
-fn kt128_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> String {
+fn kt128_hex(
+    input: &[u8],
+    customization: &[u8],
+    num_output_bytes: usize,
+) -> String {
     let mut hasher = Hasher::<KT128>::new();
     hasher.update(input);
     let mut output = vec![0; num_output_bytes];
@@ -59,12 +68,15 @@ fn kt128_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Str
     // Check that the all-at-once function gives the same answer too.
     if customization.is_empty() {
         let hash3 = hash::<KT128>(input);
-        let compare_len = std::cmp::min(hash3.as_bytes().len(), num_output_bytes);
+        let compare_len =
+            std::cmp::min(hash3.as_bytes().len(), num_output_bytes);
         assert_eq!(&hash3.as_bytes()[..compare_len], &output[..compare_len]);
     }
 
     // Check that the `k12` crate gives the same answer too.
-    let mut k12_state = k12::KangarooTwelve::from_core(k12::KangarooTwelveCore::new(customization));
+    let mut k12_state = k12::KangarooTwelve::from_core(
+        k12::KangarooTwelveCore::new(customization),
+    );
     k12_state.update(input);
     let mut k12_reader = k12_state.finalize_xof();
     let mut k12_output = vec![0; num_output_bytes];
@@ -73,7 +85,10 @@ fn kt128_hex(input: &[u8], customization: &[u8], num_output_bytes: usize) -> Str
 
     // finally, check that the tiny-keccak crate gives the same answer
     let mut tk_state = tiny_keccak::KangarooTwelve::new(customization);
-    <tiny_keccak::KangarooTwelve<&[u8]> as tiny_keccak::Hasher>::update(&mut tk_state, input);
+    <tiny_keccak::KangarooTwelve<&[u8]> as tiny_keccak::Hasher>::update(
+        &mut tk_state,
+        input,
+    );
     let mut tk_xof = tk_state.into_xof();
     let mut tk_output = vec![0; num_output_bytes];
     tk_xof.squeeze(&mut tk_output);
@@ -114,7 +129,8 @@ proptest! {
 #[test]
 fn test_vector_01() {
     // KT128(M=empty, C=empty, 32 bytes):
-    let expected = "1ac2d450fc3b4205d19da7bfca1b37513c0803577ac7167f06fe2ce1f0ef39e5";
+    let expected =
+        "1ac2d450fc3b4205d19da7bfca1b37513c0803577ac7167f06fe2ce1f0ef39e5";
     assert_eq!(expected, kt128_hex(&[], &[], 32));
 }
 
@@ -128,7 +144,8 @@ fn test_vector_02() {
 #[test]
 fn test_vector_03() {
     // KT128(M=empty, C=empty, 10032 bytes), last 32 bytes:
-    let expected = "e8dc563642f7228c84684c898405d3a834799158c079b12880277a1d28e2ff6d";
+    let expected =
+        "e8dc563642f7228c84684c898405d3a834799158c079b12880277a1d28e2ff6d";
     let out = kt128_hex(&[], &[], 10032);
     assert_eq!(expected, &out[out.len() - 64..]);
 }
@@ -136,7 +153,8 @@ fn test_vector_03() {
 #[test]
 fn test_vector_04() {
     // KT128(M=pattern 0x00 to 0xFA for 17^0 bytes, C=empty, 32 bytes):
-    let expected = "2bda92450e8b147f8a7cb629e784a058efca7cf7d8218e02d345dfaa65244a1f";
+    let expected =
+        "2bda92450e8b147f8a7cb629e784a058efca7cf7d8218e02d345dfaa65244a1f";
     let mut input = [0];
     fill_pattern(&mut input);
     assert_eq!(expected, kt128_hex(&input, &[], 32));
@@ -145,7 +163,8 @@ fn test_vector_04() {
 #[test]
 fn test_vector_05() {
     // KT128(M=pattern 0x00 to 0xFA for 17^1 bytes, C=empty, 32 bytes):
-    let expected = "6bf75fa2239198db4772e36478f8e19b0f371205f6a9a93a273f51df37122888";
+    let expected =
+        "6bf75fa2239198db4772e36478f8e19b0f371205f6a9a93a273f51df37122888";
     let mut input = vec![0; 17];
     fill_pattern(&mut input);
     assert_eq!(expected, kt128_hex(&input, &[], 32));
@@ -154,7 +173,8 @@ fn test_vector_05() {
 #[test]
 fn test_vector_06() {
     // KT128(M=pattern 0x00 to 0xFA for 17^2 bytes, C=empty, 32 bytes):
-    let expected = "0c315ebcdedbf61426de7dcf8fb725d1e74675d7f5327a5067f367b108ecb67c";
+    let expected =
+        "0c315ebcdedbf61426de7dcf8fb725d1e74675d7f5327a5067f367b108ecb67c";
     let mut input = vec![0; 17 * 17];
     fill_pattern(&mut input);
     assert_eq!(expected, kt128_hex(&input, &[], 32));
@@ -163,7 +183,8 @@ fn test_vector_06() {
 #[test]
 fn test_vector_07() {
     // KT128(M=pattern 0x00 to 0xFA for 17^3 bytes, C=empty, 32 bytes):
-    let expected = "cb552e2ec77d9910701d578b457ddf772c12e322e4ee7fe417f92c758f0d59d0";
+    let expected =
+        "cb552e2ec77d9910701d578b457ddf772c12e322e4ee7fe417f92c758f0d59d0";
     let mut input = vec![0; 17 * 17 * 17];
     fill_pattern(&mut input);
     assert_eq!(expected, kt128_hex(&input, &[], 32));
@@ -172,7 +193,8 @@ fn test_vector_07() {
 #[test]
 fn test_vector_08() {
     // KT128(M=pattern 0x00 to 0xFA for 17^4 bytes, C=empty, 32 bytes):
-    let expected = "8701045e22205345ff4dda05555cbb5c3af1a771c2b89baef37db43d9998b9fe";
+    let expected =
+        "8701045e22205345ff4dda05555cbb5c3af1a771c2b89baef37db43d9998b9fe";
     let mut input = vec![0; 17 * 17 * 17 * 17];
     fill_pattern(&mut input);
     assert_eq!(expected, kt128_hex(&input, &[], 32));
@@ -181,7 +203,8 @@ fn test_vector_08() {
 #[test]
 fn test_vector_09() {
     // KT128(M=pattern 0x00 to 0xFA for 17^5 bytes, C=empty, 32 bytes):
-    let expected = "844d610933b1b9963cbdeb5ae3b6b05cc7cbd67ceedf883eb678a0a8e0371682";
+    let expected =
+        "844d610933b1b9963cbdeb5ae3b6b05cc7cbd67ceedf883eb678a0a8e0371682";
     let mut input = vec![0; 17 * 17 * 17 * 17 * 17];
     fill_pattern(&mut input);
     assert_eq!(expected, kt128_hex(&input, &[], 32));
@@ -190,7 +213,8 @@ fn test_vector_09() {
 #[test]
 fn test_vector_10() {
     // KT128(M=pattern 0x00 to 0xFA for 17^6 bytes, C=empty, 32 bytes):
-    let expected = "3c390782a8a4e89fa6367f72feaaf13255c8d95878481d3cd8ce85f58e880af8";
+    let expected =
+        "3c390782a8a4e89fa6367f72feaaf13255c8d95878481d3cd8ce85f58e880af8";
     let mut input = vec![0; 17 * 17 * 17 * 17 * 17 * 17];
     fill_pattern(&mut input);
     assert_eq!(expected, kt128_hex(&input, &[], 32));
@@ -199,7 +223,8 @@ fn test_vector_10() {
 #[test]
 fn test_vector_11() {
     // KT128(M=0 times byte 0xFF, C=pattern 0x00 to 0xFA for 41^0 bytes, 32 bytes):
-    let expected = "fab658db63e94a246188bf7af69a133045f46ee984c56e3c3328caaf1aa1a583";
+    let expected =
+        "fab658db63e94a246188bf7af69a133045f46ee984c56e3c3328caaf1aa1a583";
     let mut customization = [0];
     fill_pattern(&mut customization);
     assert_eq!(expected, kt128_hex(&[], &customization, 32));
@@ -208,7 +233,8 @@ fn test_vector_11() {
 #[test]
 fn test_vector_12() {
     // KT128(M=1 times byte 0xFF, C=pattern 0x00 to 0xFA for 41^1 bytes, 32 bytes):
-    let expected = "d848c5068ced736f4462159b9867fd4c20b808acc3d5bc48e0b06ba0a3762ec4";
+    let expected =
+        "d848c5068ced736f4462159b9867fd4c20b808acc3d5bc48e0b06ba0a3762ec4";
     let input = [0xff];
     let mut customization = vec![0; 41];
     fill_pattern(&mut customization);
@@ -218,7 +244,8 @@ fn test_vector_12() {
 #[test]
 fn test_vector_13() {
     // KT128(M=3 times byte 0xFF, C=pattern 0x00 to 0xFA for 41^2 bytes, 32 bytes):
-    let expected = "c389e5009ae57120854c2e8c64670ac01358cf4c1baf89447a724234dc7ced74";
+    let expected =
+        "c389e5009ae57120854c2e8c64670ac01358cf4c1baf89447a724234dc7ced74";
     let input = [0xff; 3];
     let mut customization = vec![0; 41 * 41];
     fill_pattern(&mut customization);
@@ -228,7 +255,8 @@ fn test_vector_13() {
 #[test]
 fn test_vector_14() {
     // KT128(M=7 times byte 0xFF, C=pattern 0x00 to 0xFA for 41^3 bytes, 32 bytes):
-    let expected = "75d2f86a2e644566726b4fbcfc5657b9dbcf070c7b0dca06450ab291d7443bcf";
+    let expected =
+        "75d2f86a2e644566726b4fbcfc5657b9dbcf070c7b0dca06450ab291d7443bcf";
     let input = [0xff; 7];
     let mut customization = vec![0; 41 * 41 * 41];
     fill_pattern(&mut customization);

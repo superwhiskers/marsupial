@@ -11,5 +11,5 @@ readme.workspace = true
 
 [build-dependencies]
 cc = "1"
-bindgen = "0.69"
+bindgen = "0.71"
 doxygen-rs = "0.4"

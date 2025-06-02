@@ -6,13 +6,13 @@ members = [
   "fuzzing/target-marsupial-kt256",
   "fuzzing/fuzzing-utils",
 ]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 repository = "https://github.com/superwhiskers/marsupial"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Jack O'Connor <oconnor663@gmail.com>", "superwhiskers <whiskerdev@protonmail.com>"]
-edition = "2021"
+edition = "2024"
 keywords = ["kangarootwelve", "k12"]
 readme = "readme.md"
 
@@ -28,10 +28,10 @@ keywords.workspace = true
 readme.workspace = true
 
 [dependencies]
-constant_time_eq = "0.3"
+constant_time_eq = "0.4"
 
 [dependencies.marsupial-sys]
-version = "0.1"
+version = "0.2"
 path = "./sys"
 
 [dev-dependencies]
@@ -39,8 +39,8 @@ digest = "0.10"
 hex = "0.4"
 k12 = "0.3"
 page_size = "0.6"
-rand = "0.8"
-criterion = "0.5"
+rand = "0.9"
+criterion = "0.6"
 proptest = "1"
 
 [dev-dependencies.tiny-keccak]

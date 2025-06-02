@@ -28,13 +28,15 @@ enum TargetImplementation {
 fn main() {
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
-    let target_pointer_width = env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap();
+    let target_pointer_width =
+        env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap(); // e.g. "msvc" on Windows
-    let target_is_little_endian = match env::var("CARGO_CFG_TARGET_ENDIAN").unwrap().as_str() {
-        "little" => true,
-        "big" => false,
-        e => panic!("unexpected endianness: {}", e),
-    };
+    let target_is_little_endian =
+        match env::var("CARGO_CFG_TARGET_ENDIAN").unwrap().as_str() {
+            "little" => true,
+            "big" => false,
+            e => panic!("unexpected endianness: {}", e),
+        };
     let target_has_armv8_sha3 = env::var("CARGO_CFG_TARGET_FEATURE")
         .unwrap_or("".to_string())
         .as_str()
@@ -65,8 +67,8 @@ fn main() {
             format!(
                 "-Isrc/XKCP-K12/lib/{}",
                 match target_implementation {
-                    TargetImplementation::Optimized64 | TargetImplementation::Optimized64NoAsm =>
-                        "Optimized64",
+                    TargetImplementation::Optimized64
+                    | TargetImplementation::Optimized64NoAsm => "Optimized64",
                     TargetImplementation::Plain64 => "Plain64",
                     TargetImplementation::Inplace32BI => "Inplace32BI",
                     TargetImplementation::Armv8Asha3 => "ARMv8Asha3",
@@ -99,7 +101,8 @@ fn main() {
         base_build.define("BIG_ENDIAN", "1");
     }
     match &target_implementation {
-        TargetImplementation::Optimized64 | TargetImplementation::Optimized64NoAsm => {
+        TargetImplementation::Optimized64
+        | TargetImplementation::Optimized64NoAsm => {
             // These two targets share headers.
             base_build.include("src/XKCP-K12/lib/Optimized64");
         }
@@ -126,15 +129,21 @@ fn main() {
     // The different targets add additional portable files.
 
     match &target_implementation {
-        TargetImplementation::Optimized64 | TargetImplementation::Optimized64NoAsm => {
-            portable_build.file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-opt64.c");
-            portable_build.file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-runtimeDispatch.c");
+        TargetImplementation::Optimized64
+        | TargetImplementation::Optimized64NoAsm => {
+            portable_build
+                .file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-opt64.c");
+            portable_build.file(
+                "src/XKCP-K12/lib/Optimized64/KeccakP-1600-runtimeDispatch.c",
+            );
 
             let mut ssse3_build = base_build.clone();
             if target_env != "msvc" {
                 ssse3_build.flag("-mssse3");
             }
-            ssse3_build.file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-timesN-SSSE3.c");
+            ssse3_build.file(
+                "src/XKCP-K12/lib/Optimized64/KeccakP-1600-timesN-SSSE3.c",
+            );
             ssse3_build.compile("k12_ssse3");
 
             let mut avx2_build = base_build.clone();
@@ -143,7 +152,9 @@ fn main() {
             } else {
                 avx2_build.flag("-mavx2");
             }
-            avx2_build.file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-timesN-AVX2.c");
+            avx2_build.file(
+                "src/XKCP-K12/lib/Optimized64/KeccakP-1600-timesN-AVX2.c",
+            );
             avx2_build.compile("k12_avx2");
 
             let mut avx512_build = base_build.clone();
@@ -153,13 +164,19 @@ fn main() {
                 avx512_build.flag("-mavx512f");
                 avx512_build.flag("-mavx512vl");
             }
-            avx512_build.file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-timesN-AVX512.c");
+            avx512_build.file(
+                "src/XKCP-K12/lib/Optimized64/KeccakP-1600-timesN-AVX512.c",
+            );
             // For the non-asm build we add another file below.
 
-            if let TargetImplementation::Optimized64 = &target_implementation {
+            if let TargetImplementation::Optimized64 = &target_implementation
+            {
                 let mut asm_build = base_build.clone();
-                asm_build.file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-AVX2.s");
-                asm_build.file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-AVX512.s");
+                asm_build
+                    .file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-AVX2.s");
+                asm_build.file(
+                    "src/XKCP-K12/lib/Optimized64/KeccakP-1600-AVX512.s",
+                );
                 if target_os == "macos" {
                     // see https://github.com/XKCP/K12/blob/b4f434574c501b1088468180feeeaab6117341e4/support/Build/ToTargetMakefile.xsl#L178
                     asm_build.flag("-xassembler-with-cpp");
@@ -173,16 +190,21 @@ fn main() {
             avx512_build.compile("k12_avx512");
         }
         TargetImplementation::Plain64 => {
-            portable_build.file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-opt64.c");
-            portable_build.file("src/XKCP-K12/lib/Plain64/KeccakP-1600-plain64.c");
+            portable_build
+                .file("src/XKCP-K12/lib/Optimized64/KeccakP-1600-opt64.c");
+            portable_build
+                .file("src/XKCP-K12/lib/Plain64/KeccakP-1600-plain64.c");
         }
         TargetImplementation::Inplace32BI => {
-            portable_build.file("src/XKCP-K12/lib/Inplace32BI/KeccakP-1600-inplace32BI.c");
+            portable_build.file(
+                "src/XKCP-K12/lib/Inplace32BI/KeccakP-1600-inplace32BI.c",
+            );
         }
         TargetImplementation::Armv8Asha3 => {
             let mut sha3_build = base_build.clone();
             sha3_build.flag("-march=armv8.4-a+sha3");
-            sha3_build.file("src/XKCP-K12/lib/ARMv8Asha3/KeccakP-1600-opt64.c");
+            sha3_build
+                .file("src/XKCP-K12/lib/ARMv8Asha3/KeccakP-1600-opt64.c");
             sha3_build.compile("k12_sha3");
 
             let mut asm_build = base_build.clone();
@@ -193,7 +215,9 @@ fn main() {
                 asm_build.flag("-xassembler-with-cpp");
                 asm_build.flag("-Wa,-defsym,macOS=1");
             }
-            asm_build.file("src/XKCP-K12/lib/ARMv8Asha3/KeccakP-1600-ARMv8Asha3.S");
+            asm_build.file(
+                "src/XKCP-K12/lib/ARMv8Asha3/KeccakP-1600-ARMv8Asha3.S",
+            );
             asm_build.compile("k12_asm");
         }
     }

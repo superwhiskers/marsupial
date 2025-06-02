@@ -1,6 +1,9 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{
+    BenchmarkId, Criterion, Throughput, criterion_group, criterion_main,
+};
 use marsupial::{KT128, KT256};
 use rand::prelude::*;
+use std::hint::black_box;
 
 const KIB: usize = 1024;
 
@@ -18,7 +21,7 @@ impl RandomInput {
     pub fn new(len: usize) -> Self {
         let page_size: usize = page_size::get();
         let mut buf = vec![0u8; len + page_size];
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         rng.fill_bytes(&mut buf);
         let mut offsets: Vec<usize> = (0..page_size).collect();
         offsets.shuffle(&mut rng);
@@ -82,7 +85,8 @@ fn bench_kt128(c: &mut Criterion) {
                 use digest::{ExtendableOutput, Update, XofReader};
                 use k12::{KangarooTwelve, KangarooTwelveCore};
 
-                let mut state = KangarooTwelve::from_core(KangarooTwelveCore::default());
+                let mut state =
+                    KangarooTwelve::from_core(KangarooTwelveCore::default());
                 state.update(k12_input.get());
 
                 let mut reader = state.finalize_xof();
